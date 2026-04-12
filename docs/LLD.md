@@ -129,8 +129,9 @@ File: `index.html`
 
 Main elements:
 
+- `#documentName`: current document filename.
 - `#status`: save/open status text.
-- `#updateStatus`: renderer library update check status text.
+- `#updateStatus`: renderer library update check status text, shown only when attention is needed.
 - `#newDoc`: new document button.
 - `#openFileButton`: open button.
 - `#openFile`: hidden file input.
@@ -147,7 +148,10 @@ File: `styles.css`
 Main layout:
 
 - `.shell`: whole app container.
-- `.topbar`: top status/action area.
+- `.topbar`: compact top status/action area.
+- `.document-strip`: current document identity and save status area.
+- `.app-mark`: local app mark used instead of a remote image.
+- `.action-group`: grouped document and save actions.
 - `.workspace`: two-column editor/preview grid.
 - `.pane`: shared pane structure.
 - `.preview`: rendered Markdown styling.
@@ -156,7 +160,7 @@ Main layout:
 Responsive behavior:
 
 - At `820px` or below, the editor and preview switch to a vertical stack.
-- At `460px` or below, the brand image is hidden and button widths are adjusted.
+- At `460px` or below, the app mark and document name shrink and button widths are adjusted.
 
 ### 4.3 JavaScript Module Responsibilities
 
@@ -183,7 +187,7 @@ Main functions:
 - `setStatus(message)`: Updates status text.
 - `setUpdateStatus(message, tone)`: Updates renderer library update check text separately from document status.
 - `autosave()`: Debounces and writes to `localStorage`.
-- `downloadFile(content, filename, type)`: Requests native save in the app, or uses Blob download in a browser.
+- `downloadFile(content, filename, type, mode)`: Requests native save in the app, or uses Blob download in a browser.
 
 ### 4.4 Preview Copy
 

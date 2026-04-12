@@ -129,8 +129,9 @@ app.delegate = delegate;
 
 주요 요소:
 
+- `#documentName`: 현재 문서 파일명.
 - `#status`: 저장/열기 상태 메시지.
-- `#updateStatus`: 렌더링 라이브러리 업데이트 확인 상태 메시지.
+- `#updateStatus`: 렌더링 라이브러리 업데이트 확인 상태 메시지. 주의가 필요한 경우에만 표시한다.
 - `#newDoc`: 새 문서 버튼.
 - `#openFileButton`: 열기 버튼.
 - `#openFile`: 숨겨진 파일 입력.
@@ -147,11 +148,19 @@ app.delegate = delegate;
 주요 레이아웃:
 
 - `.shell`: 앱 전체 컨테이너.
-- `.topbar`: 앱 상단 상태/액션 영역.
+- `.topbar`: 얇은 앱 상단 상태/액션 영역.
+- `.document-strip`: 현재 문서 식별 정보와 저장 상태 영역.
+- `.app-mark`: 원격 이미지 대신 사용하는 로컬 앱 마크.
+- `.action-group`: 문서 액션과 저장 액션 그룹.
 - `.workspace`: 편집/미리보기 2열 그리드.
 - `.pane`: 각 패널 공통 구조.
 - `.preview`: 마크다운 렌더링 결과 스타일.
 - `.preview`: 텍스트 선택과 `Cmd+C` 복사를 위해 `user-select: text`를 명시.
+
+반응형 동작:
+
+- `820px` 이하에서는 편집기와 미리보기가 세로 스택으로 전환된다.
+- `460px` 이하에서는 앱 마크와 문서명이 줄어들고 버튼 너비가 조정된다.
 
 ### 4.4 미리보기 복사
 
@@ -219,7 +228,7 @@ let saveTimer = 0;
 - `setStatus(message)`: 상태 메시지 갱신.
 - `setUpdateStatus(message, tone)`: 문서 상태와 분리된 렌더링 라이브러리 업데이트 확인 메시지 갱신.
 - `autosave()`: debounce 후 `localStorage` 저장.
-- `downloadFile(content, filename, type)`: 앱에서는 native save bridge로 저장 요청, 브라우저에서는 Blob 다운로드 실행.
+- `downloadFile(content, filename, type, mode)`: 앱에서는 native save bridge로 저장 요청, 브라우저에서는 Blob 다운로드 실행.
 
 ## 5. 렌더링 흐름
 

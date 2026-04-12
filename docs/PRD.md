@@ -108,6 +108,8 @@ The product packages a web-based editor UI inside a local macOS app bundle and r
 
 ## 9. Future Improvements
 
+- Refine the top toolbar UI/UX toward a more native macOS app structure: make the current document name and save status the primary information, group `New`/`Open` separately from `Save`/`Save As` in a compact toolbar, and demote app version and renderer update details to secondary status.
+- Add lightweight visual regression coverage for the top toolbar at desktop and narrow window widths.
 - Add a recent documents list.
 - Add dark mode.
 - Low priority: revisit a broader Export flow with HTML/PDF choices later.
