@@ -8,6 +8,7 @@ const updateStatus = document.querySelector("#updateStatus");
 const openFileButton = document.querySelector("#openFileButton");
 const openFile = document.querySelector("#openFile");
 const saveMd = document.querySelector("#saveMd");
+const saveAs = document.querySelector("#saveAs");
 const newDoc = document.querySelector("#newDoc");
 
 const storageKey = "deskmd-document";
@@ -234,11 +235,12 @@ function recordTestAction(action) {
   }
 }
 
-function downloadFile(content, filename, type) {
+function downloadFile(content, filename, type, mode = "save") {
   if (testActionMocks) {
     setStatus(`${filename} 테스트 저장 호출됨`);
     recordTestAction({
       action: "save",
+      mode,
       filename,
       type,
       contentLength: content.length
@@ -248,8 +250,8 @@ function downloadFile(content, filename, type) {
 
   const nativeSave = window.webkit?.messageHandlers?.saveFile;
   if (nativeSave) {
-    nativeSave.postMessage({ content, filename, type });
-    setStatus(`${filename} 저장 위치 선택 중`);
+    nativeSave.postMessage({ content, filename, type, mode });
+    setStatus(mode === "saveAs" ? `${filename} 저장 위치 선택 중` : `${filename} 저장 중`);
     return;
   }
 
@@ -290,7 +292,12 @@ function openFilePicker() {
 
 function saveMarkdown() {
   const name = currentFileName.endsWith(".md") ? currentFileName : `${currentFileName}.md`;
-  downloadFile(editor.value, name, "text/markdown;charset=utf-8");
+  downloadFile(editor.value, name, "text/markdown;charset=utf-8", "save");
+}
+
+function saveMarkdownAs() {
+  const name = currentFileName.endsWith(".md") ? currentFileName : `${currentFileName}.md`;
+  downloadFile(editor.value, name, "text/markdown;charset=utf-8", "saveAs");
 }
 
 function createNewDocument() {
@@ -298,6 +305,7 @@ function createNewDocument() {
     return false;
   }
 
+  window.webkit?.messageHandlers?.documentState?.postMessage({ action: "newDocument" });
   currentFileName = "document.md";
   editor.value = starter;
   render();
@@ -358,6 +366,9 @@ window.deskMdTest = {
   clickSaveMarkdown() {
     saveMd.click();
   },
+  clickSaveAs() {
+    saveAs.click();
+  },
   copyPreviewTextForTest() {
     const text = preview.innerText.trim();
     const nativeCopy = window.webkit?.messageHandlers?.copyText;
@@ -395,6 +406,10 @@ openFile.addEventListener("change", async (event) => {
 
 saveMd.addEventListener("click", () => {
   saveMarkdown();
+});
+
+saveAs.addEventListener("click", () => {
+  saveMarkdownAs();
 });
 
 newDoc.addEventListener("click", () => {
