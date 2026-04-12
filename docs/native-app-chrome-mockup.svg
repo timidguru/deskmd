@@ -1,0 +1,95 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+  <defs>
+    <style>
+      .bg { fill: #eef1f3; }
+      .chrome { fill: #f5f6f7; stroke: #d7dce1; stroke-width: 1; }
+      .bar { fill: #fbfbfc; stroke: #d7dce1; stroke-width: 1; }
+      .paper { fill: #ffffff; stroke: #d8dee6; stroke-width: 1; }
+      .ink { fill: #1c2024; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif; }
+      .muted { fill: #68727f; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif; }
+      .accent { fill: #0f766e; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif; }
+      .title { font-size: 17px; font-weight: 700; }
+      .window-title { font-size: 15px; font-weight: 650; }
+      .menu { font-size: 14px; font-weight: 520; }
+      .doc { font-size: 20px; font-weight: 760; }
+      .small { font-size: 13px; }
+      .button-text { fill: #1c2024; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif; font-size: 14px; font-weight: 650; }
+      .primary-button-text { fill: #ffffff; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif; font-size: 14px; font-weight: 700; }
+      .button { fill: #ffffff; stroke: #cfd8e3; stroke-width: 1.2; }
+      .primary { fill: #0f766e; stroke: #0b5f59; stroke-width: 1.2; }
+      .divider { stroke: #dde2e8; stroke-width: 1; }
+    </style>
+  </defs>
+
+  <rect class="bg" width="1280" height="720"/>
+
+  <rect class="chrome" x="40" y="40" width="1200" height="640" rx="10"/>
+  <rect class="chrome" x="40" y="40" width="1200" height="36" rx="10"/>
+  <rect class="chrome" x="40" y="62" width="1200" height="14"/>
+
+  <circle cx="64" cy="58" r="6" fill="#ff5f57"/>
+  <circle cx="86" cy="58" r="6" fill="#ffbd2e"/>
+  <circle cx="108" cy="58" r="6" fill="#28c840"/>
+  <text class="ink window-title" x="640" y="63" text-anchor="middle">meeting-notes.md - DeskMD</text>
+
+  <rect class="bar" x="40" y="76" width="1200" height="76"/>
+  <g transform="translate(64 95)">
+    <rect width="40" height="40" rx="8" fill="#0f766e"/>
+    <text x="20" y="27" text-anchor="middle" fill="#ffffff" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="17" font-weight="800">MD</text>
+  </g>
+  <text class="ink doc" x="120" y="111">meeting-notes.md</text>
+  <circle cx="127" cy="135" r="4" fill="#0f766e"/>
+  <text class="accent small" x="139" y="140">Saved just now</text>
+  <text class="muted small" x="242" y="140">DeskMD v1.0.1</text>
+
+  <g>
+    <text class="ink menu" x="120" y="182">File</text>
+    <text class="ink menu" x="162" y="182">Edit</text>
+    <text class="ink menu" x="206" y="182">View</text>
+    <text class="ink menu" x="258" y="182">Help</text>
+  </g>
+
+  <rect class="bar" x="40" y="152" width="1200" height="58"/>
+  <line class="divider" x1="40" y1="152" x2="1240" y2="152"/>
+  <line class="divider" x1="40" y1="210" x2="1240" y2="210"/>
+
+  <g transform="translate(64 164)">
+    <rect class="button" width="76" height="34" rx="7"/>
+    <text class="button-text" x="38" y="23" text-anchor="middle">New</text>
+    <rect class="button" x="84" width="80" height="34" rx="7"/>
+    <text class="button-text" x="124" y="23" text-anchor="middle">Open</text>
+    <line class="divider" x1="184" y1="3" x2="184" y2="31"/>
+    <rect class="primary" x="204" width="80" height="34" rx="7"/>
+    <text class="primary-button-text" x="244" y="23" text-anchor="middle">Save</text>
+    <rect class="button" x="292" width="104" height="34" rx="7"/>
+    <text class="button-text" x="344" y="23" text-anchor="middle">Save As</text>
+  </g>
+
+  <g transform="translate(930 164)">
+    <rect x="0" y="0" width="248" height="34" rx="7" fill="#f2f5f6" stroke="#d8dee6"/>
+    <text class="muted small" x="124" y="22" text-anchor="middle">Renderer status only appears when needed</text>
+  </g>
+
+  <rect class="paper" x="64" y="236" width="552" height="390" rx="8"/>
+  <rect class="paper" x="664" y="236" width="552" height="390" rx="8"/>
+  <rect x="64" y="236" width="552" height="42" rx="8" fill="#fbfcfb" stroke="#d8dee6"/>
+  <rect x="664" y="236" width="552" height="42" rx="8" fill="#fbfcfb" stroke="#d8dee6"/>
+  <text class="muted small" x="86" y="263">Editor</text>
+  <text class="muted small" x="686" y="263">Preview</text>
+  <text class="muted small" x="570" y="263" text-anchor="end">1,284 chars</text>
+  <text class="muted small" x="1194" y="263" text-anchor="end">Cmd+S Save</text>
+
+  <text class="ink title" x="90" y="324"># Meeting Notes</text>
+  <text class="muted small" x="90" y="360">- Project status</text>
+  <text class="muted small" x="90" y="388">- Release checklist</text>
+  <text class="muted small" x="90" y="416">- Next actions</text>
+
+  <text class="ink title" x="694" y="324">Meeting Notes</text>
+  <text class="muted small" x="694" y="360">Project status</text>
+  <text class="muted small" x="694" y="388">Release checklist</text>
+  <text class="muted small" x="694" y="416">Next actions</text>
+
+  <g transform="translate(64 652)">
+    <text class="muted small" x="0" y="0">Direction: use the macOS titlebar for identity, a compact document header for file state, and a thin toolbar for actions.</text>
+  </g>
+</svg>
