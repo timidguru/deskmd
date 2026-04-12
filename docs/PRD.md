@@ -4,7 +4,7 @@
 
 ## 1. Overview
 
-DeskMD is a lightweight Markdown editor for macOS. Users can open `DeskMD.app` directly to write Markdown, preview rendered output, save Markdown files, and export HTML without opening a browser tab.
+DeskMD is a lightweight Markdown editor for macOS. Users can open `DeskMD.app` directly to write Markdown, preview rendered output, and save Markdown files without opening a browser tab.
 
 The product packages a web-based editor UI inside a local macOS app bundle and runs it through a native `WKWebView` wrapper.
 

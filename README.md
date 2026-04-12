@@ -9,7 +9,6 @@ DeskMD is a lightweight Markdown editor for macOS. Write on the left, preview on
 - Split Markdown editor and live preview
 - Open `.md`, `.markdown`, and `.txt` files
 - Save Markdown with `Cmd+S`
-- Export the current preview as HTML
 - Local autosave through WebView `localStorage`
 - Preview text selection and `Cmd+C` clipboard copy
 - Offline rendering with bundled `marked` and `DOMPurify`
