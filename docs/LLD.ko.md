@@ -110,8 +110,9 @@ app.delegate = delegate;
 2. 파일 선택만 허용하고 디렉터리 선택은 차단.
 3. WebKit 요청의 `allowsMultipleSelection` 값을 반영.
 4. 사용자가 파일을 선택하면 `completionHandler(panel.URLs)` 호출.
-5. 선택된 첫 파일의 부모 폴더를 `lastDocumentDirectoryURL`에 저장.
-6. 취소하면 `completionHandler(nil)` 호출.
+5. 선택된 첫 파일을 `currentDocumentURL`에 저장.
+6. 선택된 첫 파일의 부모 폴더를 `lastDocumentDirectoryURL`에 저장.
+7. 취소하면 `completionHandler(nil)` 호출.
 
 ### 3.5 외부 링크 처리
 
@@ -134,6 +135,7 @@ app.delegate = delegate;
 - `#openFileButton`: 열기 버튼.
 - `#openFile`: 숨겨진 파일 입력.
 - `#saveMd`: 마크다운 저장 버튼.
+- `#saveAs`: Save As 버튼.
 - `#editor`: 편집 textarea.
 - `#preview`: 렌더링된 미리보기 영역.
 - `#count`: 문자 수 표시.
@@ -169,7 +171,8 @@ app.delegate = delegate;
 - `getUpdateStatus()`: 렌더링 라이브러리 업데이트 확인 메시지 조회.
 - `clickNewDocument()`: `새 문서` DOM 버튼 클릭.
 - `clickOpenFile()`: `열기` DOM 버튼 클릭.
-- `clickSaveMarkdown()`: `MD 저장` DOM 버튼 클릭.
+- `clickSaveMarkdown()`: `Save` DOM 버튼 클릭.
+- `clickSaveAs()`: `Save As` DOM 버튼 클릭.
 - `copyPreviewTextForTest()`: 미리보기 텍스트를 네이티브 클립보드 브릿지로 복사.
 
 macOS 앱은 `--ux-smoke-test` 실행 인자를 받으면 WebView 로드 후 내부 JS를 평가해 렌더링과 복사 브릿지를 검증하고 종료한다. `scripts/ux-smoke-test.js`는 `dist/DeskMD.app`의 실행 파일을 이 모드로 실행한 뒤 `pbpaste`로 클립보드 결과를 확인한다.
@@ -180,7 +183,8 @@ macOS 앱은 `--ux-smoke-test` 실행 인자를 받으면 WebView 로드 후 내
 - 미리보기 텍스트 복사 브릿지 확인.
 - `새 문서` 버튼의 confirm 경로 확인.
 - `새 문서` 액션 호출 및 상태 확인.
-- `MD 저장` 액션 호출 및 저장 payload 확인.
+- `Save` 액션 호출 및 저장 payload 확인.
+- `Save As` 액션 호출 및 저장 payload 확인.
 - `열기` 액션 호출 확인.
 
 저장/열기 액션은 테스트 중 macOS 패널을 실제로 열지 않고 mock action log에 기록한다. 이는 모달 패널 때문에 자동 테스트가 멈추지 않게 하기 위한 테스트 전용 동작이며, 일반 실행 모드에는 적용되지 않는다.
@@ -283,17 +287,30 @@ HTML 정리:
 
 ## 7. 저장 흐름
 
-### 7.1 MD 저장
+### 7.1 Save
 
 ```text
-MD 저장 버튼 또는 Cmd+S
-  -> downloadFile(editor.value, filename, "text/markdown;charset=utf-8")
-  -> window.webkit.messageHandlers.saveFile.postMessage(...)
+Save 버튼 또는 Cmd+S
+  -> downloadFile(editor.value, filename, "text/markdown;charset=utf-8", "save")
+  -> window.webkit.messageHandlers.saveFile.postMessage({ mode: "save", ... })
+  -> AppDelegate.userContentController(...)
+  -> currentDocumentURL이 있으면 해당 URL에 UTF-8 텍스트 저장
+  -> currentDocumentURL이 없으면 NSSavePanel 표시
+  -> 저장 성공 후 currentDocumentURL과 lastDocumentDirectoryURL 갱신
+  -> evaluateJavaScript(...)로 저장 결과 상태 갱신
+```
+
+### 7.2 Save As
+
+```text
+Save As 버튼
+  -> downloadFile(editor.value, filename, "text/markdown;charset=utf-8", "saveAs")
+  -> window.webkit.messageHandlers.saveFile.postMessage({ mode: "saveAs", ... })
   -> AppDelegate.userContentController(...)
   -> NSSavePanel 표시
   -> lastDocumentDirectoryURL이 있으면 panel.directoryURL로 지정
   -> 선택한 URL에 UTF-8 텍스트 저장
-  -> 저장된 파일의 부모 폴더를 lastDocumentDirectoryURL로 갱신
+  -> currentDocumentURL과 lastDocumentDirectoryURL 갱신
   -> evaluateJavaScript(...)로 저장 결과 상태 갱신
 ```
 
@@ -351,7 +368,7 @@ open "dist/DeskMD.app"
 ## 11. 알려진 제약과 개선 방향
 
 - 라이브러리 업데이트: 원격 스크립트는 실행하지 않고 최신 버전 여부만 확인한다.
-- 저장 UX: 현재 저장은 JavaScript bridge와 `NSSavePanel`로 처리한다. 향후에는 기존 파일 덮어쓰기와 `Save As` 구분을 추가할 수 있다.
+- 저장 UX: 현재 문서 URL이 있으면 `Save`가 바로 저장하고, 최초 저장과 `Save As`는 `NSSavePanel`을 사용한다.
 - 파일 권한: sandboxed App Store 배포를 목표로 하면 보안 스코프 북마크 처리가 필요하다.
 - 앱 아이콘: 현재 전용 앱 아이콘이 없다.
 - 테스트: 현재는 빌드/문법/서명 검증 중심이다. UI 동작 자동화 테스트는 별도 추가가 필요하다.

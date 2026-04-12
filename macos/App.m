@@ -5,6 +5,7 @@
 @interface AppDelegate : NSObject <NSApplicationDelegate, WKNavigationDelegate, WKUIDelegate, WKScriptMessageHandler>
 @property(strong) NSWindow *window;
 @property(strong) WKWebView *webView;
+@property(strong) NSURL *currentDocumentURL;
 @property(strong) NSURL *lastDocumentDirectoryURL;
 @property(assign) BOOL runsUXSmokeTest;
 @end
@@ -20,6 +21,7 @@
   WKUserContentController *contentController = [[WKUserContentController alloc] init];
   [contentController addScriptMessageHandler:self name:@"saveFile"];
   [contentController addScriptMessageHandler:self name:@"copyText"];
+  [contentController addScriptMessageHandler:self name:@"documentState"];
   configuration.userContentController = contentController;
 
   self.webView = [[WKWebView alloc] initWithFrame:NSZeroRect configuration:configuration];
@@ -92,6 +94,11 @@
     return;
   }
 
+  if ([message.name isEqualToString:@"documentState"]) {
+    [self updateDocumentStateFromMessage:message];
+    return;
+  }
+
   if (![message.name isEqualToString:@"saveFile"] || ![message.body isKindOfClass:NSDictionary.class]) {
     return;
   }
@@ -99,8 +106,21 @@
   NSDictionary *payload = (NSDictionary *)message.body;
   NSString *content = [payload[@"content"] isKindOfClass:NSString.class] ? payload[@"content"] : @"";
   NSString *filename = [payload[@"filename"] isKindOfClass:NSString.class] ? payload[@"filename"] : @"document.md";
+  NSString *mode = [payload[@"mode"] isKindOfClass:NSString.class] ? payload[@"mode"] : @"save";
 
-  [self saveContent:content suggestedFilename:filename];
+  [self saveContent:content suggestedFilename:filename mode:mode];
+}
+
+- (void)updateDocumentStateFromMessage:(WKScriptMessage *)message {
+  if (![message.body isKindOfClass:NSDictionary.class]) {
+    return;
+  }
+
+  NSDictionary *payload = (NSDictionary *)message.body;
+  NSString *action = [payload[@"action"] isKindOfClass:NSString.class] ? payload[@"action"] : @"";
+  if ([action isEqualToString:@"newDocument"]) {
+    self.currentDocumentURL = nil;
+  }
 }
 
 - (void)copyTextFromMessage:(WKScriptMessage *)message {
@@ -146,6 +166,7 @@
     if (result == NSModalResponseOK) {
       NSURL *selectedURL = panel.URLs.firstObject;
       if (selectedURL) {
+        self.currentDocumentURL = selectedURL;
         self.lastDocumentDirectoryURL = selectedURL.URLByDeletingLastPathComponent;
       }
       completionHandler(panel.URLs);
@@ -172,7 +193,12 @@
   }];
 }
 
-- (void)saveContent:(NSString *)content suggestedFilename:(NSString *)filename {
+- (void)saveContent:(NSString *)content suggestedFilename:(NSString *)filename mode:(NSString *)mode {
+  if (![mode isEqualToString:@"saveAs"] && self.currentDocumentURL) {
+    [self writeContent:content toURL:self.currentDocumentURL fallbackFilename:filename];
+    return;
+  }
+
   NSSavePanel *panel = [NSSavePanel savePanel];
   panel.nameFieldStringValue = filename;
   panel.canCreateDirectories = YES;
@@ -187,26 +213,29 @@
       return;
     }
 
-    NSError *error = nil;
-    BOOL didWrite = [content writeToURL:panel.URL atomically:YES encoding:NSUTF8StringEncoding error:&error];
-    if (!didWrite) {
-      NSString *message = error.localizedDescription ?: @"저장 실패";
-      [self notifySaveFailed:message];
-      return;
-    }
-
-    self.lastDocumentDirectoryURL = panel.URL.URLByDeletingLastPathComponent;
-    [self notifySaveCompleted:panel.URL.lastPathComponent ?: filename];
+    [self writeContent:content toURL:panel.URL fallbackFilename:filename];
   }];
+}
+
+- (void)writeContent:(NSString *)content toURL:(NSURL *)url fallbackFilename:(NSString *)filename {
+  NSError *error = nil;
+  BOOL didWrite = [content writeToURL:url atomically:YES encoding:NSUTF8StringEncoding error:&error];
+  if (!didWrite) {
+    NSString *message = error.localizedDescription ?: @"저장 실패";
+    [self notifySaveFailed:message];
+    return;
+  }
+
+  self.currentDocumentURL = url;
+  self.lastDocumentDirectoryURL = url.URLByDeletingLastPathComponent;
+  [self notifySaveCompleted:url.lastPathComponent ?: filename];
 }
 
 - (NSArray<UTType *> *)allowedTypesForFilename:(NSString *)filename {
   NSString *extension = filename.pathExtension.lowercaseString;
   UTType *type = nil;
 
-  if ([extension isEqualToString:@"html"] || [extension isEqualToString:@"htm"]) {
-    type = UTTypeHTML;
-  } else if ([extension isEqualToString:@"md"] || [extension isEqualToString:@"markdown"]) {
+  if ([extension isEqualToString:@"md"] || [extension isEqualToString:@"markdown"]) {
     type = [UTType typeWithFilenameExtension:extension];
   } else if ([extension isEqualToString:@"txt"]) {
     type = UTTypePlainText;
@@ -276,10 +305,12 @@
        "if (!window.deskMdTest.getPreviewText().includes('새 문서')) { return fail('new-document'); }"
        "window.deskMdTest.setMarkdown('# Save Button\\n\\nBody', 'button-test.md');"
        "window.deskMdTest.clickSaveMarkdown();"
+       "window.deskMdTest.clickSaveAs();"
        "window.deskMdTest.clickOpenFile();"
        "const actions = window.deskMdTest.getActions();"
        "if (!actions.some((a) => a.action === 'newDocument')) { return fail('new-document-action'); }"
-       "if (!actions.some((a) => a.action === 'save' && a.filename === 'button-test.md' && a.type.includes('markdown'))) { return fail('md-save-action:' + JSON.stringify(actions)); }"
+       "if (!actions.some((a) => a.action === 'save' && a.mode === 'save' && a.filename === 'button-test.md' && a.type.includes('markdown'))) { return fail('md-save-action:' + JSON.stringify(actions)); }"
+       "if (!actions.some((a) => a.action === 'save' && a.mode === 'saveAs' && a.filename === 'button-test.md' && a.type.includes('markdown'))) { return fail('save-as-action:' + JSON.stringify(actions)); }"
        "if (actions.some((a) => a.filename === 'button-test.html')) { return fail('html-save-action-removed:' + JSON.stringify(actions)); }"
        "if (!actions.some((a) => a.action === 'open')) { return fail('open-action:' + JSON.stringify(actions)); }"
        "return 'passed:' + JSON.stringify(actions);"

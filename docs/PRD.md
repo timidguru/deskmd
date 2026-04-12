@@ -13,7 +13,7 @@ The product packages a web-based editor UI inside a local macOS app bundle and r
 - Provide a Markdown writing environment that runs like a macOS app.
 - Show editing and rendered preview side by side.
 - Run from a local app bundle without a separate server or package install step for end users.
-- Open `.md`, `.markdown`, and `.txt` files, then save as `.md` or `.html`.
+- Open `.md`, `.markdown`, and `.txt` files, then save Markdown changes with `Save` or `Save As`.
 - Preserve in-progress work with local autosave.
 
 ## 3. Non-Goals
@@ -48,10 +48,17 @@ The product packages a web-based editor UI inside a local macOS app bundle and r
 
 ### 5.3 Save Markdown
 
-1. The user clicks `Save MD` or presses `Cmd+S`.
-2. The macOS save panel appears. If the user opened an existing document, the default location is that document's folder.
-3. The current document is saved as a `.md` file.
+1. The user clicks `Save` or presses `Cmd+S`.
+2. If the document already has a file URL, DeskMD writes directly to that file.
+3. If the document has no file URL yet, DeskMD opens the macOS save panel.
 4. The status text reports that the save completed.
+
+### 5.4 Save As
+
+1. The user clicks `Save As`.
+2. DeskMD always opens the macOS save panel.
+3. The user chooses a save location.
+4. DeskMD saves the document to the selected path and uses that path for future `Save` actions.
 
 ## 6. Functional Requirements
 
@@ -75,6 +82,8 @@ The product packages a web-based editor UI inside a local macOS app bundle and r
 | FR-016 | Users must be able to see the current document filename in the app UI. | Implemented |
 | FR-017 | Toolbar buttons must use short English labels. | Implemented |
 | FR-018 | Renderer library update check results must be shown separately from document save/open status. | Implemented |
+| FR-019 | `Save` must write directly to the current document when a file URL is known, and fall back to a save panel for new documents. | Implemented |
+| FR-020 | `Save As` must always show a save panel and update the current document path after a successful save. | Implemented |
 
 ## 7. Non-Functional Requirements
 
@@ -93,13 +102,12 @@ The product packages a web-based editor UI inside a local macOS app bundle and r
 
 - The app uses bundled `marked 18.0.0` and `DOMPurify 3.3.3` as the default renderer stack.
 - If internet access is available, the app only checks npm registry metadata for newer versions.
-- Saving is handled through the native macOS save panel.
+- `Save As` and first-time saves are handled through the native macOS save panel.
 - The app is ad-hoc signed and is not notarized with an Apple Developer account.
 - Autosave data is stored in the app WebView's `localStorage`.
 
 ## 9. Future Improvements
 
-- Separate overwrite behavior from `Save As`.
 - Add a recent documents list.
 - Add dark mode.
 - Low priority: revisit a broader Export flow with HTML/PDF choices later.

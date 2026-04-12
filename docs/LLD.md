@@ -110,8 +110,9 @@ Flow:
 2. Allow file selection and block directory selection.
 3. Apply WebKit's `allowsMultipleSelection` value.
 4. If the user selects a file, call `completionHandler(panel.URLs)`.
-5. Save the first selected file's parent folder to `lastDocumentDirectoryURL`.
-6. If the user cancels, call `completionHandler(nil)`.
+5. Save the first selected file to `currentDocumentURL`.
+6. Save the first selected file's parent folder to `lastDocumentDirectoryURL`.
+7. If the user cancels, call `completionHandler(nil)`.
 
 ### 3.5 External Link Handling
 
@@ -134,6 +135,7 @@ Main elements:
 - `#openFileButton`: open button.
 - `#openFile`: hidden file input.
 - `#saveMd`: Markdown save button.
+- `#saveAs`: Save As button.
 - `#editor`: editor textarea.
 - `#preview`: rendered preview area.
 - `#count`: character count.
@@ -201,7 +203,8 @@ Main methods:
 - `getUpdateStatus()`: Returns renderer library update check text.
 - `clickNewDocument()`: Clicks the `New Document` DOM button.
 - `clickOpenFile()`: Clicks the `Open` DOM button.
-- `clickSaveMarkdown()`: Clicks the `Save MD` DOM button.
+- `clickSaveMarkdown()`: Clicks the `Save` DOM button.
+- `clickSaveAs()`: Clicks the `Save As` DOM button.
 - `copyPreviewTextForTest()`: Copies preview text through the native clipboard bridge.
 
 When the macOS app receives the `--ux-smoke-test` argument, it evaluates internal JavaScript after the WebView finishes loading, verifies rendering and clipboard bridging, then exits. `scripts/ux-smoke-test.js` runs the executable in `dist/DeskMD.app` with this mode and verifies the clipboard result through `pbpaste`.
@@ -212,7 +215,8 @@ Current UX smoke test coverage:
 - Verify preview text copy through the native bridge.
 - Verify the `New Document` confirm path.
 - Verify the `New Document` action and status update.
-- Verify `Save MD` action and save payload.
+- Verify `Save` action and save payload.
+- Verify `Save As` action and save payload.
 - Verify `Open` action.
 
 During tests, save/open actions are recorded to a mock action log instead of opening macOS panels. This is test-only behavior to avoid blocking automation on modal panels and does not apply in normal app mode.
@@ -283,17 +287,30 @@ Open button click
 
 ## 7. Save Flow
 
-### 7.1 Save Markdown
+### 7.1 Save
 
 ```text
-Save MD button or Cmd+S
-  -> downloadFile(editor.value, filename, "text/markdown;charset=utf-8")
-  -> window.webkit.messageHandlers.saveFile.postMessage(...)
+Save button or Cmd+S
+  -> downloadFile(editor.value, filename, "text/markdown;charset=utf-8", "save")
+  -> window.webkit.messageHandlers.saveFile.postMessage({ mode: "save", ... })
+  -> AppDelegate.userContentController(...)
+  -> if currentDocumentURL exists, write UTF-8 text to that URL
+  -> otherwise show NSSavePanel
+  -> update currentDocumentURL and lastDocumentDirectoryURL after successful save
+  -> evaluateJavaScript(...) to update save result status
+```
+
+### 7.2 Save As
+
+```text
+Save As button
+  -> downloadFile(editor.value, filename, "text/markdown;charset=utf-8", "saveAs")
+  -> window.webkit.messageHandlers.saveFile.postMessage({ mode: "saveAs", ... })
   -> AppDelegate.userContentController(...)
   -> show NSSavePanel
   -> set panel.directoryURL when lastDocumentDirectoryURL exists
   -> write UTF-8 text to the selected URL
-  -> update lastDocumentDirectoryURL to the saved file's parent folder
+  -> update currentDocumentURL and lastDocumentDirectoryURL
   -> evaluateJavaScript(...) to update save result status
 ```
 
@@ -351,7 +368,7 @@ open "dist/DeskMD.app"
 ## 11. Known Constraints and Future Improvements
 
 - Library updates: the app only checks whether newer versions exist and never executes remote scripts.
-- Save UX: saving currently uses the JavaScript bridge and `NSSavePanel`; a future version can separate overwrite behavior from `Save As`.
+- Save UX: `Save` writes directly when a current document URL exists; first-time saves and `Save As` use `NSSavePanel`.
 - File permissions: sandboxed App Store distribution would require security-scoped bookmarks.
 - App icon: there is no dedicated app icon yet.
 - Tests: current tests focus on build checks, syntax checks, signing verification, and the built-in UX smoke path.
