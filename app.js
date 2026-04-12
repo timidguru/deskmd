@@ -4,10 +4,10 @@ const count = document.querySelector("#count");
 const status = document.querySelector("#status");
 const appVersion = document.querySelector("#appVersion");
 const documentName = document.querySelector("#documentName");
+const updateStatus = document.querySelector("#updateStatus");
 const openFileButton = document.querySelector("#openFileButton");
 const openFile = document.querySelector("#openFile");
 const saveMd = document.querySelector("#saveMd");
-const saveHtml = document.querySelector("#saveHtml");
 const newDoc = document.querySelector("#newDoc");
 
 const storageKey = "deskmd-document";
@@ -162,6 +162,11 @@ function setStatus(message) {
   status.textContent = message;
 }
 
+function setUpdateStatus(message, tone = "neutral") {
+  updateStatus.textContent = message;
+  updateStatus.dataset.tone = tone;
+}
+
 function updateDocumentMeta() {
   const displayName = currentFileName || "document.md";
   documentName.textContent = displayName;
@@ -171,6 +176,7 @@ function updateDocumentMeta() {
 async function checkLibraryUpdates() {
   const versions = window.deskMdVendorVersions;
   if (!versions) {
+    setUpdateStatus("Renderer version metadata unavailable", "muted");
     return;
   }
 
@@ -199,11 +205,14 @@ async function checkLibraryUpdates() {
       }
     }));
   } catch (error) {
+    setUpdateStatus("Renderer update check skipped", "muted");
     return;
   }
 
   if (updates.length) {
-    setStatus(`업데이트 가능: ${updates.join(", ")}`);
+    setUpdateStatus(`Renderer updates available: ${updates.join(", ")}`, "attention");
+  } else {
+    setUpdateStatus("Renderer libraries up to date", "ok");
   }
 }
 
@@ -269,30 +278,6 @@ window.deskMdCopyCompleted = () => {
   setStatus("선택한 텍스트 복사됨");
 };
 
-function htmlDocument() {
-  return `<!doctype html>
-<html lang="ko">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>${escapeHtml(currentFileName.replace(/\.[^.]+$/, ""))}</title>
-  <style>
-    body { max-width: 820px; margin: 40px auto; padding: 0 20px; color: #1c2024; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; line-height: 1.7; }
-    pre { overflow: auto; padding: 14px; border-radius: 8px; background: #202426; color: #f7f8f4; }
-    code { background: #eef1f5; border-radius: 6px; padding: 2px 5px; }
-    pre code { background: transparent; padding: 0; color: inherit; }
-    blockquote { margin-left: 0; padding-left: 16px; border-left: 4px solid #0f766e; color: #68727f; }
-    img { max-width: 100%; border-radius: 8px; }
-    table { width: 100%; border-collapse: collapse; }
-    th, td { border: 1px solid #d8dee6; padding: 8px 10px; }
-  </style>
-</head>
-<body>
-${preview.innerHTML}
-</body>
-</html>`;
-}
-
 function openFilePicker() {
   if (testActionMocks) {
     setStatus("열기 테스트 호출됨");
@@ -306,11 +291,6 @@ function openFilePicker() {
 function saveMarkdown() {
   const name = currentFileName.endsWith(".md") ? currentFileName : `${currentFileName}.md`;
   downloadFile(editor.value, name, "text/markdown;charset=utf-8");
-}
-
-function saveHtmlDocument() {
-  const htmlName = currentFileName.replace(/\.[^.]+$/, "") || "document";
-  downloadFile(htmlDocument(), `${htmlName}.html`, "text/html;charset=utf-8");
 }
 
 function createNewDocument() {
@@ -362,6 +342,9 @@ window.deskMdTest = {
   getAppVersion() {
     return appVersion.textContent;
   },
+  getUpdateStatus() {
+    return updateStatus.textContent;
+  },
   getActions() {
     return testActions;
   },
@@ -374,9 +357,6 @@ window.deskMdTest = {
   },
   clickSaveMarkdown() {
     saveMd.click();
-  },
-  clickSaveHtml() {
-    saveHtml.click();
   },
   copyPreviewTextForTest() {
     const text = preview.innerText.trim();
@@ -415,10 +395,6 @@ openFile.addEventListener("change", async (event) => {
 
 saveMd.addEventListener("click", () => {
   saveMarkdown();
-});
-
-saveHtml.addEventListener("click", () => {
-  saveHtmlDocument();
 });
 
 newDoc.addEventListener("click", () => {

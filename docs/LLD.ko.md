@@ -129,11 +129,11 @@ app.delegate = delegate;
 주요 요소:
 
 - `#status`: 저장/열기 상태 메시지.
+- `#updateStatus`: 렌더링 라이브러리 업데이트 확인 상태 메시지.
 - `#newDoc`: 새 문서 버튼.
 - `#openFileButton`: 열기 버튼.
 - `#openFile`: 숨겨진 파일 입력.
 - `#saveMd`: 마크다운 저장 버튼.
-- `#saveHtml`: HTML 저장 버튼.
 - `#editor`: 편집 textarea.
 - `#preview`: 렌더링된 미리보기 영역.
 - `#count`: 문자 수 표시.
@@ -166,10 +166,10 @@ app.delegate = delegate;
 - `setMarkdown(markdown, filename)`: 테스트 문서 주입.
 - `getPreviewText()`: 미리보기 plain text 조회.
 - `getStatus()`: 상태 텍스트 조회.
+- `getUpdateStatus()`: 렌더링 라이브러리 업데이트 확인 메시지 조회.
 - `clickNewDocument()`: `새 문서` DOM 버튼 클릭.
 - `clickOpenFile()`: `열기` DOM 버튼 클릭.
 - `clickSaveMarkdown()`: `MD 저장` DOM 버튼 클릭.
-- `clickSaveHtml()`: `HTML 저장` DOM 버튼 클릭.
 - `copyPreviewTextForTest()`: 미리보기 텍스트를 네이티브 클립보드 브릿지로 복사.
 
 macOS 앱은 `--ux-smoke-test` 실행 인자를 받으면 WebView 로드 후 내부 JS를 평가해 렌더링과 복사 브릿지를 검증하고 종료한다. `scripts/ux-smoke-test.js`는 `dist/DeskMD.app`의 실행 파일을 이 모드로 실행한 뒤 `pbpaste`로 클립보드 결과를 확인한다.
@@ -181,7 +181,6 @@ macOS 앱은 `--ux-smoke-test` 실행 인자를 받으면 WebView 로드 후 내
 - `새 문서` 버튼의 confirm 경로 확인.
 - `새 문서` 액션 호출 및 상태 확인.
 - `MD 저장` 액션 호출 및 저장 payload 확인.
-- `HTML 저장` 액션 호출 및 저장 payload 확인.
 - `열기` 액션 호출 확인.
 
 저장/열기 액션은 테스트 중 macOS 패널을 실제로 열지 않고 mock action log에 기록한다. 이는 모달 패널 때문에 자동 테스트가 멈추지 않게 하기 위한 테스트 전용 동작이며, 일반 실행 모드에는 적용되지 않는다.
@@ -214,9 +213,9 @@ let saveTimer = 0;
 - `sanitizeHtml(html)`: DOMPurify 또는 기본 sanitization.
 - `render()`: 편집 내용을 HTML로 변환하고 미리보기 갱신.
 - `setStatus(message)`: 상태 메시지 갱신.
+- `setUpdateStatus(message, tone)`: 문서 상태와 분리된 렌더링 라이브러리 업데이트 확인 메시지 갱신.
 - `autosave()`: debounce 후 `localStorage` 저장.
 - `downloadFile(content, filename, type)`: 앱에서는 native save bridge로 저장 요청, 브라우저에서는 Blob 다운로드 실행.
-- `htmlDocument()`: 내보내기용 독립 HTML 문서 생성.
 
 ## 5. 렌더링 흐름
 
@@ -260,7 +259,7 @@ HTML 정리:
   -> checkLibraryUpdates()
   -> https://registry.npmjs.org/{package}/latest 조회
   -> 번들 버전과 latest.version 비교
-  -> 새 버전이 있으면 상태 영역에 업데이트 가능 표시
+  -> 새 버전이 있으면 전용 업데이트 상태 영역에 표시
 ```
 
 업데이트 확인은 알림 전용이며, 원격 JavaScript를 실행하거나 자동 교체하지 않는다.
@@ -296,19 +295,6 @@ MD 저장 버튼 또는 Cmd+S
   -> 선택한 URL에 UTF-8 텍스트 저장
   -> 저장된 파일의 부모 폴더를 lastDocumentDirectoryURL로 갱신
   -> evaluateJavaScript(...)로 저장 결과 상태 갱신
-```
-
-### 7.2 HTML 저장
-
-```text
-HTML 저장 버튼
-  -> htmlDocument()
-  -> preview.innerHTML을 독립 HTML 문서에 삽입
-  -> downloadFile(..., "text/html;charset=utf-8")
-  -> window.webkit.messageHandlers.saveFile.postMessage(...)
-  -> NSSavePanel 표시
-  -> 선택한 URL에 UTF-8 HTML 저장
-  -> 저장 결과 상태 갱신
 ```
 
 ## 8. 자동 저장

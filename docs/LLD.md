@@ -129,11 +129,11 @@ File: `index.html`
 Main elements:
 
 - `#status`: save/open status text.
+- `#updateStatus`: renderer library update check status text.
 - `#newDoc`: new document button.
 - `#openFileButton`: open button.
 - `#openFile`: hidden file input.
 - `#saveMd`: Markdown save button.
-- `#saveHtml`: HTML save button.
 - `#editor`: editor textarea.
 - `#preview`: rendered preview area.
 - `#count`: character count.
@@ -179,9 +179,9 @@ Main functions:
 - `sanitizeHtml(html)`: Uses DOMPurify or fallback sanitization.
 - `render()`: Converts editor content to HTML and updates the preview.
 - `setStatus(message)`: Updates status text.
+- `setUpdateStatus(message, tone)`: Updates renderer library update check text separately from document status.
 - `autosave()`: Debounces and writes to `localStorage`.
 - `downloadFile(content, filename, type)`: Requests native save in the app, or uses Blob download in a browser.
-- `htmlDocument()`: Creates a standalone HTML document for export.
 
 ### 4.4 Preview Copy
 
@@ -198,10 +198,10 @@ Main methods:
 - `setMarkdown(markdown, filename)`: Injects a test document.
 - `getPreviewText()`: Returns preview plain text.
 - `getStatus()`: Returns status text.
+- `getUpdateStatus()`: Returns renderer library update check text.
 - `clickNewDocument()`: Clicks the `New Document` DOM button.
 - `clickOpenFile()`: Clicks the `Open` DOM button.
 - `clickSaveMarkdown()`: Clicks the `Save MD` DOM button.
-- `clickSaveHtml()`: Clicks the `Save HTML` DOM button.
 - `copyPreviewTextForTest()`: Copies preview text through the native clipboard bridge.
 
 When the macOS app receives the `--ux-smoke-test` argument, it evaluates internal JavaScript after the WebView finishes loading, verifies rendering and clipboard bridging, then exits. `scripts/ux-smoke-test.js` runs the executable in `dist/DeskMD.app` with this mode and verifies the clipboard result through `pbpaste`.
@@ -213,7 +213,6 @@ Current UX smoke test coverage:
 - Verify the `New Document` confirm path.
 - Verify the `New Document` action and status update.
 - Verify `Save MD` action and save payload.
-- Verify `Save HTML` action and save payload.
 - Verify `Open` action.
 
 During tests, save/open actions are recorded to a mock action log instead of opening macOS panels. This is test-only behavior to avoid blocking automation on modal panels and does not apply in normal app mode.
@@ -260,7 +259,7 @@ app load
   -> checkLibraryUpdates()
   -> fetch https://registry.npmjs.org/{package}/latest
   -> compare bundled version with latest.version
-  -> show update-available text in the status area
+  -> show update-check result in a dedicated update status line
 ```
 
 The update check is informational only. It does not execute remote JavaScript or automatically replace bundled files.
@@ -296,19 +295,6 @@ Save MD button or Cmd+S
   -> write UTF-8 text to the selected URL
   -> update lastDocumentDirectoryURL to the saved file's parent folder
   -> evaluateJavaScript(...) to update save result status
-```
-
-### 7.2 Save HTML
-
-```text
-Save HTML button
-  -> htmlDocument()
-  -> insert preview.innerHTML into standalone HTML document
-  -> downloadFile(..., "text/html;charset=utf-8")
-  -> window.webkit.messageHandlers.saveFile.postMessage(...)
-  -> show NSSavePanel
-  -> write UTF-8 HTML to the selected URL
-  -> update save result status
 ```
 
 ## 8. Autosave

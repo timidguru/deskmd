@@ -53,12 +53,6 @@ The product packages a web-based editor UI inside a local macOS app bundle and r
 3. The current document is saved as a `.md` file.
 4. The status text reports that the save completed.
 
-### 5.4 Export HTML
-
-1. The user clicks `Save HTML`.
-2. The current preview HTML is wrapped as a standalone HTML document.
-3. The generated `.html` file can be opened in a browser or another tool.
-
 ## 6. Functional Requirements
 
 | ID | Requirement | Status |
@@ -69,7 +63,7 @@ The product packages a web-based editor UI inside a local macOS app bundle and r
 | FR-004 | The app must autosave the current content to local browser storage. | Implemented |
 | FR-005 | The app must open `.md`, `.markdown`, and `.txt` files. | Implemented |
 | FR-006 | The app must save the current document as Markdown. | Implemented |
-| FR-007 | The app must export the current document as HTML. | Implemented |
+| FR-007 | The app must keep export functionality out of the primary toolbar until a broader Export flow is revisited. | Implemented |
 | FR-008 | `Cmd+S` must trigger Markdown save. | Implemented |
 | FR-009 | External links must open in the default browser, not inside the app. | Implemented |
 | FR-010 | Markdown preview must work without internet access through bundled renderer libraries. | Implemented |
@@ -80,6 +74,7 @@ The product packages a web-based editor UI inside a local macOS app bundle and r
 | FR-015 | Users must be able to see the current app version from within the app. | Implemented |
 | FR-016 | Users must be able to see the current document filename in the app UI. | Implemented |
 | FR-017 | Toolbar buttons must use short English labels. | Implemented |
+| FR-018 | Renderer library update check results must be shown separately from document save/open status. | Implemented |
 
 ## 7. Non-Functional Requirements
 
@@ -104,10 +99,9 @@ The product packages a web-based editor UI inside a local macOS app bundle and r
 
 ## 9. Future Improvements
 
-- Replace the dedicated HTML save action with an Export button that lets users choose HTML or PDF export.
-- Improve the update-available notification UX.
 - Separate overwrite behavior from `Save As`.
 - Add a recent documents list.
 - Add dark mode.
+- Low priority: revisit a broader Export flow with HTML/PDF choices later.
 - Long-term: explore an optional WYSIWYG editing mode for the preview pane, while keeping the Markdown source editor as the primary editing model unless the product direction changes.
 - Add a notarized distribution build pipeline.

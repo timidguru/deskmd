@@ -108,6 +108,19 @@ h1 {
   white-space: nowrap;
 }
 
+.update-status {
+  color: var(--accent-strong);
+  font-size: 0.78rem;
+}
+
+.update-status[data-tone="muted"] {
+  color: var(--muted);
+}
+
+.update-status[data-tone="attention"] {
+  color: var(--warn);
+}
+
 .actions {
   display: flex;
   flex-wrap: wrap;

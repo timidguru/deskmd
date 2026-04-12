@@ -27,7 +27,7 @@ DeskMD는 Markdown을 편집하고 미리보기 위해 Electron, 로컬 서버, 
 
 바로 실행할 수 있는 앱 번들을 내려받을 수 있습니다:
 
-- [DeskMD.app.zip](https://github.com/timidguru/deskmd/releases/download/v1.0.0/DeskMD.app.zip)
+- [DeskMD.app.zip](https://github.com/timidguru/deskmd/releases/download/v1.0.1/DeskMD.app.zip)
 
 다운로드 후 압축을 풀고 `DeskMD.app`을 실행하면 됩니다.
 
