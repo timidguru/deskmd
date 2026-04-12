@@ -1,0 +1,21 @@
+{
+  "name": "deskmd",
+  "version": "1.0.0",
+  "description": "A lightweight Markdown editor for macOS.",
+  "main": "app.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "build:mac": "./scripts/build-macos-app.sh",
+    "check": "node --check app.js && node --check scripts/ux-smoke-test.js && bash -n scripts/build-macos-app.sh",
+    "test:ux": "node scripts/ux-smoke-test.js"
+  },
+  "keywords": [],
+  "author": "Junyoung Kang",
+  "license": "ISC",
+  "dependencies": {
+    "dompurify": "3.3.3",
+    "marked": "18.0.0"
+  }
+}

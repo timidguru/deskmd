@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>DeskMD</title>
+    <link rel="stylesheet" href="./styles.css">
+    <script src="./vendor/versions.js" defer></script>
+    <script src="./vendor/purify.min.js" defer></script>
+    <script src="./vendor/marked.umd.js" defer></script>
+    <script src="./app.js" defer></script>
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <div class="brand">
+          <img
+            src="https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=160&q=70"
+            alt=""
+            class="brand-image"
+          >
+          <div>
+            <h1>DeskMD</h1>
+            <p id="status">자동 저장 준비됨</p>
+          </div>
+        </div>
+
+        <div class="actions" aria-label="문서 작업">
+          <button type="button" id="newDoc">새 문서</button>
+          <button type="button" id="openFileButton">열기</button>
+          <input type="file" id="openFile" accept=".md,.markdown,.txt,text/markdown,text/plain">
+          <button type="button" id="saveMd">MD 저장</button>
+          <button type="button" id="saveHtml">HTML 저장</button>
+        </div>
+      </header>
+
+      <section class="workspace" aria-label="마크다운 편집기">
+        <div class="pane editor-pane">
+          <div class="pane-head">
+            <span>편집</span>
+            <span id="count">0자</span>
+          </div>
+          <textarea
+            id="editor"
+            spellcheck="false"
+            aria-label="마크다운 입력"
+          ></textarea>
+        </div>
+
+        <div class="pane preview-pane">
+          <div class="pane-head">
+            <span>미리보기</span>
+            <span>⌘S 저장</span>
+          </div>
+          <article id="preview" class="preview" aria-live="polite"></article>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>
