@@ -8,7 +8,7 @@
   },
   "scripts": {
     "build:mac": "./scripts/build-macos-app.sh",
-    "check": "node --check app.js && node --check scripts/ux-smoke-test.js && bash -n scripts/build-macos-app.sh",
+    "check": "node --check app.js && node --check scripts/ux-smoke-test.js && node --check scripts/generate-app-icon.js && bash -n scripts/build-macos-app.sh",
     "test:ux": "node scripts/ux-smoke-test.js"
   },
   "keywords": [],

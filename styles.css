@@ -75,11 +75,37 @@ h1 {
   line-height: 1.25;
 }
 
+.title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.version-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 2px 7px;
+  color: var(--accent-strong);
+  background: var(--accent-soft);
+  font-size: 0.74rem;
+  line-height: 1;
+}
+
 .brand p {
   margin: 4px 0 0;
   color: var(--muted);
   font-size: 0.88rem;
   line-height: 1.3;
+}
+
+.document-name {
+  overflow: hidden;
+  max-width: min(58vw, 520px);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .actions {

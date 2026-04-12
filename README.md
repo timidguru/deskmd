@@ -23,6 +23,14 @@ DeskMD is a lightweight Markdown editor for macOS. Write on the left, preview on
 
 DeskMD does not require Electron, a local server, or an internet connection to edit and preview Markdown.
 
+## Download
+
+Download the latest runnable app bundle:
+
+- [DeskMD.app.zip](https://github.com/timidguru/deskmd/releases/download/v1.0.0/DeskMD.app.zip)
+
+After downloading, unzip the file and open `DeskMD.app`.
+
 ## Quick Start
 
 Build the macOS app:

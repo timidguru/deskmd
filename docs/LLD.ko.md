@@ -35,10 +35,12 @@ DeskMD는 두 레이어로 구성된다.
 │   ├── LLD.md
 │   └── LLD.ko.md
 ├── macos
+│   ├── AppIcon.icns
 │   ├── App.m
 │   └── Info.plist
 ├── scripts
 │   ├── build-macos-app.sh
+│   ├── generate-app-icon.js
 │   └── ux-smoke-test.js
 └── dist
     └── DeskMD.app
@@ -347,9 +349,10 @@ dist/DeskMD.app
 4. `Cocoa`, `WebKit`, `UniformTypeIdentifiers` 프레임워크 링크.
 5. `Info.plist` 복사.
 6. `index.html`, `styles.css`, `app.js`, `vendor`를 앱 리소스로 복사.
-7. 실행 권한 부여.
-8. 가능한 경우 ad-hoc codesign 수행.
-9. 빌드용 `ModuleCache` 제거.
+7. `AppIcon.icns`를 앱 리소스로 복사.
+8. 실행 권한 부여.
+9. 가능한 경우 ad-hoc codesign 수행.
+10. 빌드용 `ModuleCache` 제거.
 
 ## 10. 실행
 

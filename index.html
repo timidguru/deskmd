@@ -20,37 +20,41 @@
             class="brand-image"
           >
           <div>
-            <h1>DeskMD</h1>
+            <div class="title-row">
+              <h1>DeskMD</h1>
+              <span id="appVersion" class="version-badge">v1.0.0</span>
+            </div>
+            <p id="documentName" class="document-name">document.md</p>
             <p id="status">자동 저장 준비됨</p>
           </div>
         </div>
 
-        <div class="actions" aria-label="문서 작업">
-          <button type="button" id="newDoc">새 문서</button>
-          <button type="button" id="openFileButton">열기</button>
+        <div class="actions" aria-label="Document actions">
+          <button type="button" id="newDoc">New</button>
+          <button type="button" id="openFileButton">Open</button>
           <input type="file" id="openFile" accept=".md,.markdown,.txt,text/markdown,text/plain">
-          <button type="button" id="saveMd">MD 저장</button>
-          <button type="button" id="saveHtml">HTML 저장</button>
+          <button type="button" id="saveMd">Save</button>
+          <button type="button" id="saveHtml">Export HTML</button>
         </div>
       </header>
 
-      <section class="workspace" aria-label="마크다운 편집기">
+      <section class="workspace" aria-label="Markdown editor">
         <div class="pane editor-pane">
           <div class="pane-head">
-            <span>편집</span>
+            <span>Editor</span>
             <span id="count">0자</span>
           </div>
           <textarea
             id="editor"
             spellcheck="false"
-            aria-label="마크다운 입력"
+            aria-label="Markdown input"
           ></textarea>
         </div>
 
         <div class="pane preview-pane">
           <div class="pane-head">
-            <span>미리보기</span>
-            <span>⌘S 저장</span>
+            <span>Preview</span>
+            <span>⌘S Save</span>
           </div>
           <article id="preview" class="preview" aria-live="polite"></article>
         </div>

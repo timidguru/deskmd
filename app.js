@@ -2,6 +2,8 @@ const editor = document.querySelector("#editor");
 const preview = document.querySelector("#preview");
 const count = document.querySelector("#count");
 const status = document.querySelector("#status");
+const appVersion = document.querySelector("#appVersion");
+const documentName = document.querySelector("#documentName");
 const openFileButton = document.querySelector("#openFileButton");
 const openFile = document.querySelector("#openFile");
 const saveMd = document.querySelector("#saveMd");
@@ -160,10 +162,20 @@ function setStatus(message) {
   status.textContent = message;
 }
 
+function updateDocumentMeta() {
+  const displayName = currentFileName || "document.md";
+  documentName.textContent = displayName;
+  document.title = `DeskMD - ${displayName}`;
+}
+
 async function checkLibraryUpdates() {
   const versions = window.deskMdVendorVersions;
   if (!versions) {
     return;
+  }
+
+  if (versions.app) {
+    appVersion.textContent = `v${versions.app}`;
   }
 
   const checks = [
@@ -242,6 +254,10 @@ function downloadFile(content, filename, type) {
 }
 
 window.deskMdSaveCompleted = (filename) => {
+  if (/\.m(?:arkdown|d)$/i.test(filename)) {
+    currentFileName = filename;
+    updateDocumentMeta();
+  }
   setStatus(`${filename} 저장됨`);
 };
 
@@ -305,6 +321,7 @@ function createNewDocument() {
   currentFileName = "document.md";
   editor.value = starter;
   render();
+  updateDocumentMeta();
   autosave();
   setStatus("새 문서");
   recordTestAction({ action: "newDocument" });
@@ -323,6 +340,7 @@ window.deskMdTest = {
     currentFileName = filename;
     editor.value = markdown;
     render();
+    updateDocumentMeta();
     autosave();
     setStatus(`${filename} 테스트 문서`);
   },
@@ -337,6 +355,12 @@ window.deskMdTest = {
   },
   getCount() {
     return count.textContent;
+  },
+  getDocumentName() {
+    return documentName.textContent;
+  },
+  getAppVersion() {
+    return appVersion.textContent;
   },
   getActions() {
     return testActions;
@@ -383,6 +407,7 @@ openFile.addEventListener("change", async (event) => {
   currentFileName = file.name;
   editor.value = await file.text();
   render();
+  updateDocumentMeta();
   autosave();
   setStatus(`${file.name} 열림`);
   openFile.value = "";
@@ -423,6 +448,7 @@ window.addEventListener("keydown", (event) => {
 });
 
 editor.value = localStorage.getItem(storageKey) || localStorage.getItem(legacyStorageKey) || starter;
+updateDocumentMeta();
 render();
 setStatus("오프라인 렌더링 준비됨");
 checkLibraryUpdates();

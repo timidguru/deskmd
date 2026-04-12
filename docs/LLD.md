@@ -35,10 +35,12 @@ DeskMD has two layers.
 │   ├── LLD.md
 │   └── LLD.ko.md
 ├── macos
+│   ├── AppIcon.icns
 │   ├── App.m
 │   └── Info.plist
 ├── scripts
 │   ├── build-macos-app.sh
+│   ├── generate-app-icon.js
 │   └── ux-smoke-test.js
 └── dist
     └── DeskMD.app
@@ -347,9 +349,10 @@ Build steps:
 4. Link `Cocoa`, `WebKit`, and `UniformTypeIdentifiers`.
 5. Copy `Info.plist`.
 6. Copy `index.html`, `styles.css`, `app.js`, and `vendor` into app resources.
-7. Set executable permissions.
-8. Run ad-hoc codesign when available.
-9. Remove the build `ModuleCache`.
+7. Copy `AppIcon.icns` into app resources.
+8. Set executable permissions.
+9. Run ad-hoc codesign when available.
+10. Remove the build `ModuleCache`.
 
 ## 10. Run
 

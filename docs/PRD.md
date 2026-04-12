@@ -77,6 +77,9 @@ The product packages a web-based editor UI inside a local macOS app bundle and r
 | FR-012 | When saving an opened document, the default save location must be the source document folder. | Implemented |
 | FR-013 | Users must be able to select preview text and copy it with the standard copy shortcut. | Implemented |
 | FR-014 | The app must provide an automated usability test path that does not depend on button coordinates. | Implemented |
+| FR-015 | Users must be able to see the current app version from within the app. | Implemented |
+| FR-016 | Users must be able to see the current document filename in the app UI. | Implemented |
+| FR-017 | Toolbar buttons must use short English labels. | Implemented |
 
 ## 7. Non-Functional Requirements
 
@@ -88,6 +91,8 @@ The product packages a web-based editor UI inside a local macOS app bundle and r
 | NFR-004 | Security | Rendered HTML removes script-capable content. |
 | NFR-005 | Offline support | App UI, `marked`, and `DOMPurify` work without internet access. |
 | NFR-006 | Maintainability | A single build script can regenerate the app bundle. |
+| NFR-007 | Release access | README links to a downloadable app bundle for users who do not want to build from source. |
+| NFR-008 | App identity | The app bundle includes a dedicated app icon. |
 
 ## 8. Current Constraints
 
@@ -99,10 +104,10 @@ The product packages a web-based editor UI inside a local macOS app bundle and r
 
 ## 9. Future Improvements
 
+- Replace the dedicated HTML save action with an Export button that lets users choose HTML or PDF export.
 - Improve the update-available notification UX.
 - Separate overwrite behavior from `Save As`.
 - Add a recent documents list.
-- Improve document title and filename display.
 - Add dark mode.
-- Add a dedicated app icon.
+- Long-term: explore an optional WYSIWYG editing mode for the preview pane, while keeping the Markdown source editor as the primary editing model unless the product direction changes.
 - Add a notarized distribution build pipeline.
