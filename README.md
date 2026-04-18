@@ -11,6 +11,7 @@ DeskMD is a lightweight Markdown editor for macOS. Write on the left, preview on
 - Save Markdown with `Cmd+S`
 - Local autosave through WebView `localStorage`
 - Preview text selection and `Cmd+C` clipboard copy
+- Light and dark appearances that follow the macOS system setting
 - Offline rendering with bundled `marked` and `DOMPurify`
 - Optional latest-version check for bundled renderer libraries when internet access is available
 
@@ -70,13 +71,20 @@ Build the app:
 npm run build:mac
 ```
 
-Run the UX smoke test against the built app:
+Run all checks against the built app:
+
+```sh
+npm run verify
+```
+
+Run individual app tests:
 
 ```sh
 npm run test:ux
+npm run test:topbar
 ```
 
-The smoke test launches `dist/DeskMD.app/Contents/MacOS/DeskMD` with `--ux-smoke-test`, verifies rendering, preview copy, and core button actions, then checks the macOS clipboard with `pbpaste`.
+The UX smoke test launches `dist/DeskMD.app/Contents/MacOS/DeskMD` with `--ux-smoke-test`, verifies rendering, preview copy, and core button actions, then checks the macOS clipboard with `pbpaste`. The topbar test runs the built app at desktop and narrow window widths to guard the toolbar layout, then repeats the pass with forced dark appearance to verify dark tokens and basic text contrast.
 
 ## Offline Rendering
 
@@ -101,6 +109,7 @@ The app never loads remote JavaScript for rendering. If the device is online, it
 │   └── Info.plist
 ├── scripts
 │   ├── build-macos-app.sh
+│   ├── topbar-visual-test.js
 │   └── ux-smoke-test.js
 ├── docs
 │   ├── PRD.md
