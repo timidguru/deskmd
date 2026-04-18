@@ -157,6 +157,12 @@ app.delegate = delegate;
 - `.preview`: 마크다운 렌더링 결과 스타일.
 - `.preview`: 텍스트 선택과 `Cmd+C` 복사를 위해 `user-select: text`를 명시.
 
+색상 동작:
+
+- `:root`는 공통 색상 토큰을 정의하고 `color-scheme: light dark`를 선언한다.
+- `@media (prefers-color-scheme: dark)`는 같은 토큰을 다크 외관용 값으로 덮어쓴다.
+- 앱 전용 테마 설정을 저장하지 않고 macOS 시스템 외관 설정을 따른다.
+
 반응형 동작:
 
 - `820px` 이하에서는 편집기와 미리보기가 세로 스택으로 전환된다.
@@ -187,7 +193,7 @@ app.delegate = delegate;
 
 macOS 앱은 `--ux-smoke-test` 실행 인자를 받으면 WebView 로드 후 내부 JS를 평가해 렌더링과 복사 브릿지를 검증하고 종료한다. `scripts/ux-smoke-test.js`는 `dist/DeskMD.app`의 실행 파일을 이 모드로 실행한 뒤 `pbpaste`로 클립보드 결과를 확인한다.
 
-macOS 앱은 `--topbar-visual-test` 실행 인자를 받으면 앱 창을 데스크톱 폭과 좁은 폭으로 조정하고, 빌드된 WebView 안에서 상단 툴바 geometry를 평가한다. 상단 툴바, 작업 영역, 액션 버튼이 viewport 안에 보이고 서로 겹치지 않는지 확인한 뒤 종료한다. `scripts/topbar-visual-test.js`는 `dist/DeskMD.app`에 이 레이아웃 가드를 실행한다.
+macOS 앱은 `--topbar-visual-test` 실행 인자를 받으면 앱 창을 데스크톱 폭과 좁은 폭으로 조정하고, 빌드된 WebView 안에서 상단 툴바 geometry를 평가한다. 상단 툴바, 작업 영역, 액션 버튼이 viewport 안에 보이고 서로 겹치지 않는지 확인한 뒤 종료한다. `scripts/topbar-visual-test.js`는 `dist/DeskMD.app`에 이 레이아웃 가드를 실행하고, `--force-dark-appearance`를 붙인 다크 외관 패스를 한 번 더 수행해 다크 토큰과 기본 텍스트 대비를 확인한다.
 
 현재 UX smoke test 검증 범위:
 
@@ -205,6 +211,7 @@ macOS 앱은 `--topbar-visual-test` 실행 인자를 받으면 앱 창을 데스
 - 좁은 창 폭 상단 툴바 geometry 확인.
 - 상단 툴바, 문서 영역, 액션 영역, 작업 영역, `New`/`Open`/`Save`/`Save As` 버튼이 viewport 안에 보이는지 확인.
 - 작업 영역이 상단 툴바와 겹치지 않는지 확인.
+- 다크 외관 강제 실행 시 예상 CSS 토큰이 적용되고 핵심 텍스트 대비가 4.5:1 이상인지 확인.
 
 저장/열기 액션은 테스트 중 macOS 패널을 실제로 열지 않고 mock action log에 기록한다. 이는 모달 패널 때문에 자동 테스트가 멈추지 않게 하기 위한 테스트 전용 동작이며, 일반 실행 모드에는 적용되지 않는다.
 

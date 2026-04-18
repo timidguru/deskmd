@@ -85,6 +85,7 @@ The product packages a web-based editor UI inside a local macOS app bundle and r
 | FR-019 | `Save` must write directly to the current document when a file URL is known, and fall back to a save panel for new documents. | Implemented |
 | FR-020 | `Save As` must always show a save panel and update the current document path after a successful save. | Implemented |
 | FR-021 | The top toolbar must have lightweight layout regression coverage at desktop and narrow window widths. | Implemented |
+| FR-022 | The UI must support light and dark appearances based on the macOS system color scheme. | Implemented |
 
 ## 7. Non-Functional Requirements
 
@@ -103,15 +104,14 @@ The product packages a web-based editor UI inside a local macOS app bundle and r
 
 - The app uses bundled `marked 18.0.0` and `DOMPurify 3.3.3` as the default renderer stack.
 - If internet access is available, the app only checks npm registry metadata for newer versions.
+- Light and dark appearances follow the macOS system color scheme through CSS media queries.
 - `Save As` and first-time saves are handled through the native macOS save panel.
 - The app is ad-hoc signed and is not notarized with an Apple Developer account.
 - Autosave data is stored in the app WebView's `localStorage`.
 
 ## 9. Future Improvements
 
-- Refine the top toolbar UI/UX toward a more native macOS app structure: make the current document name and save status the primary information, group `New`/`Open` separately from `Save`/`Save As` in a compact toolbar, and demote app version and renderer update details to secondary status.
 - Add a recent documents list.
-- Add dark mode.
 - Low priority: revisit a broader Export flow with HTML/PDF choices later.
 - Long-term: explore an optional WYSIWYG editing mode for the preview pane, while keeping the Markdown source editor as the primary editing model unless the product direction changes.
 - Add a notarized distribution build pipeline.

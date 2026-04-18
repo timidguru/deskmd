@@ -9,6 +9,7 @@
 @property(strong) NSURL *lastDocumentDirectoryURL;
 @property(assign) BOOL runsUXSmokeTest;
 @property(assign) BOOL runsTopbarVisualTest;
+@property(assign) BOOL forcesDarkAppearance;
 @end
 
 @implementation AppDelegate
@@ -17,6 +18,13 @@
   [self setupMainMenu];
   self.runsUXSmokeTest = [NSProcessInfo.processInfo.arguments containsObject:@"--ux-smoke-test"];
   self.runsTopbarVisualTest = [NSProcessInfo.processInfo.arguments containsObject:@"--topbar-visual-test"];
+  self.forcesDarkAppearance = [NSProcessInfo.processInfo.arguments containsObject:@"--force-dark-appearance"];
+
+  NSAppearance *forcedAppearance = nil;
+  if (self.forcesDarkAppearance) {
+    forcedAppearance = [NSAppearance appearanceNamed:NSAppearanceNameDarkAqua];
+    NSApp.appearance = forcedAppearance;
+  }
 
   WKWebViewConfiguration *configuration = [[WKWebViewConfiguration alloc] init];
   configuration.defaultWebpagePreferences.allowsContentJavaScript = YES;
@@ -29,6 +37,9 @@
   self.webView = [[WKWebView alloc] initWithFrame:NSZeroRect configuration:configuration];
   self.webView.navigationDelegate = self;
   self.webView.UIDelegate = self;
+  if (forcedAppearance) {
+    self.webView.appearance = forcedAppearance;
+  }
 
   NSRect frame = NSMakeRect(0, 0, 1180, 820);
   self.window = [[NSWindow alloc]
@@ -38,6 +49,9 @@
                     defer:NO];
   self.window.title = @"DeskMD";
   self.window.minSize = NSMakeSize(760, 560);
+  if (forcedAppearance) {
+    self.window.appearance = forcedAppearance;
+  }
   self.window.contentView = self.webView;
   [self.window center];
   [self.window makeKeyAndOrderFront:nil];
@@ -359,6 +373,7 @@
   CGFloat width = [testCase[@"width"] doubleValue];
   CGFloat height = [testCase[@"height"] doubleValue];
   NSInteger maxTopbarHeight = [testCase[@"maxTopbarHeight"] integerValue];
+  NSString *expectedAppearance = self.forcesDarkAppearance ? @"dark" : @"system";
 
   [self.window setContentSize:NSMakeSize(width, height)];
 
@@ -367,6 +382,7 @@
       @"(() => {"
        "const label = %@;"
        "const maxTopbarHeight = %ld;"
+       "const expectedAppearance = %@;"
        "const fail = (message) => 'failed:' + label + ':' + message;"
        "window.deskMdTest.setMarkdown('# Topbar Visual\\n\\nBody', 'a-very-long-document-name-that-should-ellipsize.md');"
        "const snapshot = window.deskMdTest.getTopbarLayoutSnapshot();"
@@ -395,9 +411,41 @@
          "const error = visible('button-' + id, button.rect);"
          "if (error) { return error; }"
        "}"
-       "return 'passed:' + label + ':' + JSON.stringify({ viewport: snapshot.viewport, topbar: snapshot.topbar, actions: snapshot.actions });"
+       "if (expectedAppearance === 'dark') {"
+         "if (!window.matchMedia('(prefers-color-scheme: dark)').matches) { return fail('dark-media-query-not-matched'); }"
+         "const rootStyle = window.getComputedStyle(document.documentElement);"
+         "const expectedTokens = { '--app-bg': '#181713', '--panel': '#26241f', '--editor-bg': '#201e1a', '--accent-ink': '#11100e' };"
+         "for (const [name, value] of Object.entries(expectedTokens)) {"
+           "const actual = rootStyle.getPropertyValue(name).trim().toLowerCase();"
+           "if (actual !== value) { return fail('dark-token-mismatch:' + name + ':' + actual); }"
+         "}"
+         "const rgb = (value) => value.slice(value.indexOf('(') + 1, value.indexOf(')')).split(',').slice(0, 3).map((part) => Number.parseFloat(part));"
+         "const luminance = ([r, g, b]) => {"
+           "const convert = (channel) => {"
+             "const normalized = channel / 255;"
+             "return normalized <= 0.03928 ? normalized / 12.92 : Math.pow((normalized + 0.055) / 1.055, 2.4);"
+           "};"
+           "return 0.2126 * convert(r) + 0.7152 * convert(g) + 0.0722 * convert(b);"
+         "};"
+         "const contrast = (foreground, background) => {"
+           "const first = luminance(rgb(foreground));"
+           "const second = luminance(rgb(background));"
+           "const light = Math.max(first, second);"
+           "const dark = Math.min(first, second);"
+           "return (light + 0.05) / (dark + 0.05);"
+         "};"
+         "const contrastPairs = ["
+           "['body', window.getComputedStyle(document.body).color, window.getComputedStyle(document.body).backgroundColor],"
+           "['editor', window.getComputedStyle(document.querySelector('#editor')).color, window.getComputedStyle(document.querySelector('#editor')).backgroundColor],"
+           "['primary-action', window.getComputedStyle(document.querySelector('.primary-action')).color, window.getComputedStyle(document.querySelector('.primary-action')).backgroundColor]"
+         "];"
+         "for (const [name, foreground, background] of contrastPairs) {"
+           "if (contrast(foreground, background) < 4.5) { return fail('dark-contrast-low:' + name + ':' + foreground + ':' + background); }"
+         "}"
+       "}"
+       "return 'passed:' + label + ':' + JSON.stringify({ viewport: snapshot.viewport, topbar: snapshot.topbar, actions: snapshot.actions, appearance: expectedAppearance });"
       "})()",
-      [self jsonStringLiteral:label], (long)maxTopbarHeight];
+      [self jsonStringLiteral:label], (long)maxTopbarHeight, [self jsonStringLiteral:expectedAppearance]];
 
     [self.webView evaluateJavaScript:script completionHandler:^(id result, NSError *error) {
       if (error) {
