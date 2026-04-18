@@ -8,6 +8,7 @@
 @property(strong) NSURL *currentDocumentURL;
 @property(strong) NSURL *lastDocumentDirectoryURL;
 @property(assign) BOOL runsUXSmokeTest;
+@property(assign) BOOL runsTopbarVisualTest;
 @end
 
 @implementation AppDelegate
@@ -15,6 +16,7 @@
 - (void)applicationDidFinishLaunching:(NSNotification *)notification {
   [self setupMainMenu];
   self.runsUXSmokeTest = [NSProcessInfo.processInfo.arguments containsObject:@"--ux-smoke-test"];
+  self.runsTopbarVisualTest = [NSProcessInfo.processInfo.arguments containsObject:@"--topbar-visual-test"];
 
   WKWebViewConfiguration *configuration = [[WKWebViewConfiguration alloc] init];
   configuration.defaultWebpagePreferences.allowsContentJavaScript = YES;
@@ -279,6 +281,12 @@
 }
 
 - (void)webView:(WKWebView *)webView didFinishNavigation:(WKNavigation *)navigation {
+  if (self.runsTopbarVisualTest) {
+    self.runsTopbarVisualTest = NO;
+    [self runTopbarVisualTestAtIndex:0 results:[NSMutableArray array]];
+    return;
+  }
+
   if (!self.runsUXSmokeTest) {
     return;
   }
@@ -329,6 +337,86 @@
       [NSApp terminate:nil];
     });
   }];
+}
+
+- (void)runTopbarVisualTestAtIndex:(NSUInteger)index results:(NSMutableArray<NSString *> *)results {
+  NSArray<NSDictionary *> *cases = @[
+    @{@"label": @"desktop", @"width": @1180, @"height": @820, @"maxTopbarHeight": @130},
+    @{@"label": @"narrow", @"width": @760, @"height": @560, @"maxTopbarHeight": @190}
+  ];
+
+  if (index >= cases.count) {
+    printf("Topbar layout test result: passed:%s\n", [results componentsJoinedByString:@","].UTF8String);
+    fflush(stdout);
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.2 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+      [NSApp terminate:nil];
+    });
+    return;
+  }
+
+  NSDictionary *testCase = cases[index];
+  NSString *label = testCase[@"label"];
+  CGFloat width = [testCase[@"width"] doubleValue];
+  CGFloat height = [testCase[@"height"] doubleValue];
+  NSInteger maxTopbarHeight = [testCase[@"maxTopbarHeight"] integerValue];
+
+  [self.window setContentSize:NSMakeSize(width, height)];
+
+  dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.25 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+    NSString *script = [NSString stringWithFormat:
+      @"(() => {"
+       "const label = %@;"
+       "const maxTopbarHeight = %ld;"
+       "const fail = (message) => 'failed:' + label + ':' + message;"
+       "window.deskMdTest.setMarkdown('# Topbar Visual\\n\\nBody', 'a-very-long-document-name-that-should-ellipsize.md');"
+       "const snapshot = window.deskMdTest.getTopbarLayoutSnapshot();"
+       "const visible = (name, rect) => {"
+         "if (!rect) { return fail(name + '-missing'); }"
+         "if (rect.display === 'none' || rect.visibility === 'hidden') { return fail(name + '-hidden'); }"
+         "if (rect.width < 24 || rect.height < 24) { return fail(name + '-too-small:' + JSON.stringify(rect)); }"
+         "if (rect.left < -0.5 || rect.top < -0.5 || rect.right > snapshot.viewport.width + 0.5 || rect.bottom > snapshot.viewport.height + 0.5) {"
+           "return fail(name + '-offscreen:' + JSON.stringify({ viewport: snapshot.viewport, rect }));"
+         "}"
+         "return null;"
+       "};"
+       "for (const [name, rect] of [['topbar', snapshot.topbar], ['documentStrip', snapshot.documentStrip], ['actions', snapshot.actions]]) {"
+         "const error = visible(name, rect);"
+         "if (error) { return error; }"
+       "}"
+       "if (!snapshot.workspace || snapshot.workspace.top < -0.5 || snapshot.workspace.left < -0.5 || snapshot.workspace.right > snapshot.viewport.width + 0.5 || snapshot.workspace.height < 120) {"
+         "return fail('workspace-bounds:' + JSON.stringify({ viewport: snapshot.viewport, workspace: snapshot.workspace }));"
+       "}"
+       "if (snapshot.topbar.height > maxTopbarHeight) { return fail('topbar-too-tall:' + snapshot.topbar.height); }"
+       "if (snapshot.workspace.top < snapshot.topbar.bottom - 1) { return fail('workspace-overlaps-topbar:' + JSON.stringify({ topbar: snapshot.topbar, workspace: snapshot.workspace })); }"
+       "const expectedButtons = ['newDoc', 'openFileButton', 'saveMd', 'saveAs'];"
+       "for (const id of expectedButtons) {"
+         "const button = snapshot.buttons.find((item) => item.id === id);"
+         "if (!button) { return fail('button-missing:' + id); }"
+         "const error = visible('button-' + id, button.rect);"
+         "if (error) { return error; }"
+       "}"
+       "return 'passed:' + label + ':' + JSON.stringify({ viewport: snapshot.viewport, topbar: snapshot.topbar, actions: snapshot.actions });"
+      "})()",
+      [self jsonStringLiteral:label], (long)maxTopbarHeight];
+
+    [self.webView evaluateJavaScript:script completionHandler:^(id result, NSError *error) {
+      if (error) {
+        fprintf(stderr, "Topbar layout test failed: %s\n", error.localizedDescription.UTF8String);
+        [NSApp terminate:nil];
+        return;
+      }
+
+      NSString *resultText = [result description];
+      if (![resultText hasPrefix:@"passed:"]) {
+        fprintf(stderr, "Topbar layout test failed: %s\n", resultText.UTF8String);
+        [NSApp terminate:nil];
+        return;
+      }
+
+      [results addObject:resultText];
+      [self runTopbarVisualTestAtIndex:index + 1 results:results];
+    }];
+  });
 }
 
 - (void)showError:(NSString *)message {

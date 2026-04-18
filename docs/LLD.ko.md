@@ -162,13 +162,13 @@ app.delegate = delegate;
 - `820px` 이하에서는 편집기와 미리보기가 세로 스택으로 전환된다.
 - `460px` 이하에서는 앱 마크와 문서명이 줄어들고 버튼 너비가 조정된다.
 
-### 4.4 미리보기 복사
+### 4.3 미리보기 복사
 
 미리보기 텍스트 선택 후 `Cmd+C`를 누르면 웹 UI가 선택 텍스트를 읽어 `copyText` message handler로 전달한다. macOS 래퍼는 전달받은 문자열을 `NSPasteboard.generalPasteboard`에 `NSPasteboardTypeString`으로 기록한다.
 
 에디터 `textarea`가 포커스된 상태에서는 이 브릿지를 사용하지 않고 기본 편집 복사를 유지한다.
 
-### 4.5 테스트 브릿지
+### 4.4 테스트 브릿지
 
 웹 UI는 자동 사용성 테스트를 위해 `window.deskMdTest` 객체를 제공한다. 이 객체는 버튼 좌표에 의존하지 않고 실제 DOM 버튼의 `.click()` 경로와 상태를 검증하기 위한 얇은 테스트 API다.
 
@@ -178,6 +178,7 @@ app.delegate = delegate;
 - `getPreviewText()`: 미리보기 plain text 조회.
 - `getStatus()`: 상태 텍스트 조회.
 - `getUpdateStatus()`: 렌더링 라이브러리 업데이트 확인 메시지 조회.
+- `getTopbarLayoutSnapshot()`: 레이아웃 회귀 테스트를 위한 viewport와 상단 툴바 geometry 조회.
 - `clickNewDocument()`: `새 문서` DOM 버튼 클릭.
 - `clickOpenFile()`: `열기` DOM 버튼 클릭.
 - `clickSaveMarkdown()`: `Save` DOM 버튼 클릭.
@@ -185,6 +186,8 @@ app.delegate = delegate;
 - `copyPreviewTextForTest()`: 미리보기 텍스트를 네이티브 클립보드 브릿지로 복사.
 
 macOS 앱은 `--ux-smoke-test` 실행 인자를 받으면 WebView 로드 후 내부 JS를 평가해 렌더링과 복사 브릿지를 검증하고 종료한다. `scripts/ux-smoke-test.js`는 `dist/DeskMD.app`의 실행 파일을 이 모드로 실행한 뒤 `pbpaste`로 클립보드 결과를 확인한다.
+
+macOS 앱은 `--topbar-visual-test` 실행 인자를 받으면 앱 창을 데스크톱 폭과 좁은 폭으로 조정하고, 빌드된 WebView 안에서 상단 툴바 geometry를 평가한다. 상단 툴바, 작업 영역, 액션 버튼이 viewport 안에 보이고 서로 겹치지 않는지 확인한 뒤 종료한다. `scripts/topbar-visual-test.js`는 `dist/DeskMD.app`에 이 레이아웃 가드를 실행한다.
 
 현재 UX smoke test 검증 범위:
 
@@ -196,14 +199,16 @@ macOS 앱은 `--ux-smoke-test` 실행 인자를 받으면 WebView 로드 후 내
 - `Save As` 액션 호출 및 저장 payload 확인.
 - `열기` 액션 호출 확인.
 
+현재 topbar layout test 검증 범위:
+
+- 데스크톱 폭 상단 툴바 geometry 확인.
+- 좁은 창 폭 상단 툴바 geometry 확인.
+- 상단 툴바, 문서 영역, 액션 영역, 작업 영역, `New`/`Open`/`Save`/`Save As` 버튼이 viewport 안에 보이는지 확인.
+- 작업 영역이 상단 툴바와 겹치지 않는지 확인.
+
 저장/열기 액션은 테스트 중 macOS 패널을 실제로 열지 않고 mock action log에 기록한다. 이는 모달 패널 때문에 자동 테스트가 멈추지 않게 하기 위한 테스트 전용 동작이며, 일반 실행 모드에는 적용되지 않는다.
 
-반응형:
-
-- `820px` 이하에서는 편집/미리보기를 세로 스택으로 전환.
-- `460px` 이하에서는 브랜드 이미지를 숨기고 버튼 폭을 조정.
-
-### 4.3 JavaScript 모듈 책임
+### 4.5 JavaScript 모듈 책임
 
 파일: `app.js`
 
