@@ -264,10 +264,15 @@ function downloadFile(content, filename, type, mode = "save") {
   URL.revokeObjectURL(url);
 }
 
+function filenameForSave() {
+  return /\.(?:md|markdown|txt)$/i.test(currentFileName) ? currentFileName : `${currentFileName}.md`;
+}
+
 window.deskMdSaveCompleted = (filename) => {
-  if (/\.m(?:arkdown|d)$/i.test(filename)) {
+  if (/\.(?:md|markdown|txt)$/i.test(filename)) {
     currentFileName = filename;
     updateDocumentMeta();
+    localStorage.setItem(fileNameKey, currentFileName);
   }
   setStatus(`${filename} 저장됨`);
 };
@@ -304,12 +309,12 @@ function openFilePicker() {
 }
 
 function saveMarkdown() {
-  const name = currentFileName.endsWith(".md") ? currentFileName : `${currentFileName}.md`;
+  const name = filenameForSave();
   downloadFile(editor.value, name, "text/markdown;charset=utf-8", "save");
 }
 
 function saveMarkdownAs() {
-  const name = currentFileName.endsWith(".md") ? currentFileName : `${currentFileName}.md`;
+  const name = filenameForSave();
   downloadFile(editor.value, name, "text/markdown;charset=utf-8", "saveAs");
 }
 
@@ -359,6 +364,9 @@ window.deskMdTest = {
   },
   getDocumentName() {
     return documentName.textContent;
+  },
+  getStoredFileName() {
+    return localStorage.getItem(fileNameKey);
   },
   getAppVersion() {
     return appVersion.textContent;
@@ -418,6 +426,14 @@ window.deskMdTest = {
   },
   clickSaveAs() {
     saveAs.click();
+  },
+  completeSave(filename) {
+    window.deskMdSaveCompleted(filename);
+    return {
+      documentName: documentName.textContent,
+      storedFileName: localStorage.getItem(fileNameKey),
+      status: status.textContent
+    };
   },
   copyPreviewTextForTest() {
     const text = preview.innerText.trim();
