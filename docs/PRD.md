@@ -86,6 +86,7 @@ The product packages a web-based editor UI inside a local macOS app bundle and r
 | FR-020 | `Save As` must always show a save panel and update the current document path after a successful save. | Implemented |
 | FR-021 | The top toolbar must have lightweight layout regression coverage at desktop and narrow window widths. | Implemented |
 | FR-022 | The UI must support light and dark appearances based on the macOS system color scheme. | Implemented |
+| FR-023 | Users must be able to reopen up to five recent documents from the macOS `File > Open Recent` menu. | Implemented |
 
 ## 7. Non-Functional Requirements
 
@@ -108,10 +109,10 @@ The product packages a web-based editor UI inside a local macOS app bundle and r
 - `Save As` and first-time saves are handled through the native macOS save panel.
 - The app is ad-hoc signed and is not notarized with an Apple Developer account.
 - Autosave data is stored in the app WebView's `localStorage`.
+- Recent document paths are stored in macOS user defaults and are limited to five entries.
 
 ## 9. Future Improvements
 
-- Add a recent documents list.
 - Low priority: revisit a broader Export flow with HTML/PDF choices later.
 - Long-term: explore an optional WYSIWYG editing mode for the preview pane, while keeping the Markdown source editor as the primary editing model unless the product direction changes.
 - Add a notarized distribution build pipeline.

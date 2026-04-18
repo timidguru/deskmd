@@ -8,10 +8,11 @@
   },
   "scripts": {
     "build:mac": "./scripts/build-macos-app.sh",
-    "check": "node --check app.js && node --check scripts/ux-smoke-test.js && node --check scripts/topbar-visual-test.js && node --check scripts/generate-app-icon.js && bash -n scripts/build-macos-app.sh",
+    "check": "node --check app.js && node --check scripts/ux-smoke-test.js && node --check scripts/topbar-visual-test.js && node --check scripts/recent-documents-test.js && node --check scripts/generate-app-icon.js && bash -n scripts/build-macos-app.sh",
+    "test:recent": "node scripts/recent-documents-test.js",
     "test:topbar": "node scripts/topbar-visual-test.js",
     "test:ux": "node scripts/ux-smoke-test.js",
-    "verify": "npm run check && npm run build:mac && npm run test:ux && npm run test:topbar"
+    "verify": "npm run check && npm run build:mac && npm run test:ux && npm run test:topbar && npm run test:recent"
   },
   "keywords": [],
   "author": "Junyoung Kang",
