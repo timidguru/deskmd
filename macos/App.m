@@ -7,18 +7,27 @@
 @property(strong) WKWebView *webView;
 @property(strong) NSURL *currentDocumentURL;
 @property(strong) NSURL *lastDocumentDirectoryURL;
+@property(strong) NSMenu *openRecentMenu;
 @property(assign) BOOL runsUXSmokeTest;
 @property(assign) BOOL runsTopbarVisualTest;
+@property(assign) BOOL runsRecentDocumentsTest;
+@property(assign) BOOL usesRecentDocumentsTestStore;
 @property(assign) BOOL forcesDarkAppearance;
 @end
 
 @implementation AppDelegate
 
+static NSString *const DeskMDRecentDocumentsKey = @"DeskMDRecentDocuments";
+static NSString *const DeskMDRecentDocumentsTestKey = @"DeskMDRecentDocumentsTest";
+static const NSUInteger DeskMDMaximumRecentDocuments = 5;
+
 - (void)applicationDidFinishLaunching:(NSNotification *)notification {
-  [self setupMainMenu];
   self.runsUXSmokeTest = [NSProcessInfo.processInfo.arguments containsObject:@"--ux-smoke-test"];
   self.runsTopbarVisualTest = [NSProcessInfo.processInfo.arguments containsObject:@"--topbar-visual-test"];
+  self.runsRecentDocumentsTest = [NSProcessInfo.processInfo.arguments containsObject:@"--recent-documents-test"];
+  self.usesRecentDocumentsTestStore = self.runsRecentDocumentsTest;
   self.forcesDarkAppearance = [NSProcessInfo.processInfo.arguments containsObject:@"--force-dark-appearance"];
+  [self setupMainMenu];
 
   NSAppearance *forcedAppearance = nil;
   if (self.forcesDarkAppearance) {
@@ -71,6 +80,22 @@
   appMenuItem.submenu = appMenu;
   [mainMenu addItem:appMenuItem];
 
+  NSMenuItem *fileMenuItem = [[NSMenuItem alloc] initWithTitle:@"" action:nil keyEquivalent:@""];
+  NSMenu *fileMenu = [[NSMenu alloc] initWithTitle:@"File"];
+  [fileMenu addItemWithTitle:@"New" action:@selector(newDocumentFromMenu:) keyEquivalent:@"n"].target = self;
+  [fileMenu addItemWithTitle:@"Open..." action:@selector(openDocumentFromMenu:) keyEquivalent:@"o"].target = self;
+
+  self.openRecentMenu = [[NSMenu alloc] initWithTitle:@"Open Recent"];
+  NSMenuItem *openRecentItem = [[NSMenuItem alloc] initWithTitle:@"Open Recent" action:nil keyEquivalent:@""];
+  openRecentItem.submenu = self.openRecentMenu;
+  [fileMenu addItem:openRecentItem];
+  [fileMenu addItem:[NSMenuItem separatorItem]];
+  [fileMenu addItemWithTitle:@"Save" action:@selector(saveDocumentFromMenu:) keyEquivalent:@"s"].target = self;
+  [fileMenu addItemWithTitle:@"Save As..." action:@selector(saveDocumentAsFromMenu:) keyEquivalent:@"S"].target = self;
+  fileMenuItem.submenu = fileMenu;
+  [mainMenu addItem:fileMenuItem];
+  [self updateOpenRecentMenu];
+
   NSMenuItem *editMenuItem = [[NSMenuItem alloc] initWithTitle:@"" action:nil keyEquivalent:@""];
   NSMenu *editMenu = [[NSMenu alloc] initWithTitle:@"Edit"];
   [editMenu addItemWithTitle:@"Cut" action:@selector(cut:) keyEquivalent:@"x"];
@@ -81,6 +106,164 @@
   [mainMenu addItem:editMenuItem];
 
   NSApp.mainMenu = mainMenu;
+}
+
+- (void)newDocumentFromMenu:(id)sender {
+  [self.webView evaluateJavaScript:@"window.deskMdCreateNewDocument && window.deskMdCreateNewDocument();" completionHandler:nil];
+}
+
+- (void)openDocumentFromMenu:(id)sender {
+  NSOpenPanel *panel = [self markdownOpenPanel];
+  [panel beginSheetModalForWindow:self.window completionHandler:^(NSModalResponse result) {
+    if (result == NSModalResponseOK && panel.URL) {
+      [self openDocumentAtURL:panel.URL removeIfMissing:NO];
+    }
+  }];
+}
+
+- (void)saveDocumentFromMenu:(id)sender {
+  [self.webView evaluateJavaScript:@"document.querySelector('#saveMd')?.click();" completionHandler:nil];
+}
+
+- (void)saveDocumentAsFromMenu:(id)sender {
+  [self.webView evaluateJavaScript:@"document.querySelector('#saveAs')?.click();" completionHandler:nil];
+}
+
+- (NSOpenPanel *)markdownOpenPanel {
+  NSOpenPanel *panel = [NSOpenPanel openPanel];
+  panel.canChooseFiles = YES;
+  panel.canChooseDirectories = NO;
+  panel.allowsMultipleSelection = NO;
+  panel.allowedContentTypes = [self allowedOpenDocumentTypes];
+  if (self.lastDocumentDirectoryURL) {
+    panel.directoryURL = self.lastDocumentDirectoryURL;
+  }
+  return panel;
+}
+
+- (NSArray<UTType *> *)allowedOpenDocumentTypes {
+  NSMutableArray<UTType *> *allowedTypes = [NSMutableArray arrayWithObject:UTTypePlainText];
+  UTType *markdownType = [UTType typeWithFilenameExtension:@"md"];
+  UTType *markdownLongType = [UTType typeWithFilenameExtension:@"markdown"];
+  if (markdownType) {
+    [allowedTypes addObject:markdownType];
+  }
+  if (markdownLongType) {
+    [allowedTypes addObject:markdownLongType];
+  }
+  return allowedTypes;
+}
+
+- (void)openRecentDocument:(NSMenuItem *)sender {
+  NSString *path = [sender.representedObject isKindOfClass:NSString.class] ? sender.representedObject : nil;
+  if (!path.length) {
+    return;
+  }
+
+  [self openDocumentAtURL:[NSURL fileURLWithPath:path] removeIfMissing:YES];
+}
+
+- (void)clearRecentDocuments:(id)sender {
+  [NSUserDefaults.standardUserDefaults removeObjectForKey:[self recentDocumentsKey]];
+  [self updateOpenRecentMenu];
+}
+
+- (void)openDocumentAtURL:(NSURL *)url removeIfMissing:(BOOL)removeIfMissing {
+  NSError *error = nil;
+  NSString *content = [NSString stringWithContentsOfURL:url encoding:NSUTF8StringEncoding error:&error];
+  if (!content) {
+    if (removeIfMissing) {
+      [self removeRecentDocumentURL:url];
+    }
+    NSString *message = error.localizedDescription ?: @"문서를 열 수 없습니다.";
+    [self showNonFatalError:[NSString stringWithFormat:@"%@\n%@", url.lastPathComponent ?: @"문서", message]];
+    return;
+  }
+
+  self.currentDocumentURL = url;
+  self.lastDocumentDirectoryURL = url.URLByDeletingLastPathComponent;
+  [self addRecentDocumentURL:url];
+
+  NSString *script = [NSString stringWithFormat:@"window.deskMdOpenDocument(%@, %@);",
+      [self jsonStringLiteral:url.lastPathComponent ?: @"document.md"],
+      [self jsonStringLiteral:content]];
+  [self.webView evaluateJavaScript:script completionHandler:nil];
+}
+
+- (NSArray<NSString *> *)recentDocumentPaths {
+  NSArray *storedPaths = [NSUserDefaults.standardUserDefaults arrayForKey:[self recentDocumentsKey]];
+  if (![storedPaths isKindOfClass:NSArray.class]) {
+    return @[];
+  }
+
+  NSMutableArray<NSString *> *paths = [NSMutableArray array];
+  for (id item in storedPaths) {
+    if ([item isKindOfClass:NSString.class] && [item length] > 0) {
+      [paths addObject:item];
+    }
+  }
+  return paths;
+}
+
+- (void)addRecentDocumentURL:(NSURL *)url {
+  if (!url.isFileURL || !url.path.length) {
+    return;
+  }
+
+  NSString *path = url.path.stringByStandardizingPath;
+  NSMutableArray<NSString *> *paths = [[self recentDocumentPaths] mutableCopy];
+  [paths removeObject:path];
+  [paths insertObject:path atIndex:0];
+  if (paths.count > DeskMDMaximumRecentDocuments) {
+    [paths removeObjectsInRange:NSMakeRange(DeskMDMaximumRecentDocuments, paths.count - DeskMDMaximumRecentDocuments)];
+  }
+
+  [NSUserDefaults.standardUserDefaults setObject:paths forKey:[self recentDocumentsKey]];
+  [self updateOpenRecentMenu];
+}
+
+- (void)removeRecentDocumentURL:(NSURL *)url {
+  if (!url.path.length) {
+    return;
+  }
+
+  NSMutableArray<NSString *> *paths = [[self recentDocumentPaths] mutableCopy];
+  [paths removeObject:url.path.stringByStandardizingPath];
+  [NSUserDefaults.standardUserDefaults setObject:paths forKey:[self recentDocumentsKey]];
+  [self updateOpenRecentMenu];
+}
+
+- (NSString *)recentDocumentsKey {
+  return self.usesRecentDocumentsTestStore ? DeskMDRecentDocumentsTestKey : DeskMDRecentDocumentsKey;
+}
+
+- (void)updateOpenRecentMenu {
+  if (!self.openRecentMenu) {
+    return;
+  }
+
+  [self.openRecentMenu removeAllItems];
+  NSArray<NSString *> *paths = [self recentDocumentPaths];
+  if (!paths.count) {
+    NSMenuItem *emptyItem = [[NSMenuItem alloc] initWithTitle:@"No Recent Documents" action:nil keyEquivalent:@""];
+    emptyItem.enabled = NO;
+    [self.openRecentMenu addItem:emptyItem];
+    return;
+  }
+
+  for (NSString *path in paths) {
+    NSURL *url = [NSURL fileURLWithPath:path];
+    NSMenuItem *item = [[NSMenuItem alloc] initWithTitle:url.lastPathComponent action:@selector(openRecentDocument:) keyEquivalent:@""];
+    item.target = self;
+    item.representedObject = path;
+    item.toolTip = path;
+    [self.openRecentMenu addItem:item];
+  }
+
+  [self.openRecentMenu addItem:[NSMenuItem separatorItem]];
+  NSMenuItem *clearItem = [[NSMenuItem alloc] initWithTitle:@"Clear Menu" action:@selector(clearRecentDocuments:) keyEquivalent:@""];
+  clearItem.target = self;
+  [self.openRecentMenu addItem:clearItem];
 }
 
 - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender {
@@ -167,16 +350,10 @@
   panel.canChooseFiles = YES;
   panel.canChooseDirectories = NO;
   panel.allowsMultipleSelection = parameters.allowsMultipleSelection;
-  NSMutableArray<UTType *> *allowedTypes = [NSMutableArray arrayWithObject:UTTypePlainText];
-  UTType *markdownType = [UTType typeWithFilenameExtension:@"md"];
-  UTType *markdownLongType = [UTType typeWithFilenameExtension:@"markdown"];
-  if (markdownType) {
-    [allowedTypes addObject:markdownType];
+  panel.allowedContentTypes = [self allowedOpenDocumentTypes];
+  if (self.lastDocumentDirectoryURL) {
+    panel.directoryURL = self.lastDocumentDirectoryURL;
   }
-  if (markdownLongType) {
-    [allowedTypes addObject:markdownLongType];
-  }
-  panel.allowedContentTypes = allowedTypes;
 
   [panel beginSheetModalForWindow:self.window completionHandler:^(NSModalResponse result) {
     if (result == NSModalResponseOK) {
@@ -184,6 +361,7 @@
       if (selectedURL) {
         self.currentDocumentURL = selectedURL;
         self.lastDocumentDirectoryURL = selectedURL.URLByDeletingLastPathComponent;
+        [self addRecentDocumentURL:selectedURL];
       }
       completionHandler(panel.URLs);
       return;
@@ -244,6 +422,7 @@
 
   self.currentDocumentURL = url;
   self.lastDocumentDirectoryURL = url.URLByDeletingLastPathComponent;
+  [self addRecentDocumentURL:url];
   [self notifySaveCompleted:url.lastPathComponent ?: filename];
 }
 
@@ -295,6 +474,12 @@
 }
 
 - (void)webView:(WKWebView *)webView didFinishNavigation:(WKNavigation *)navigation {
+  if (self.runsRecentDocumentsTest) {
+    self.runsRecentDocumentsTest = NO;
+    [self runRecentDocumentsTest];
+    return;
+  }
+
   if (self.runsTopbarVisualTest) {
     self.runsTopbarVisualTest = NO;
     [self runTopbarVisualTestAtIndex:0 results:[NSMutableArray array]];
@@ -351,6 +536,94 @@
       [NSApp terminate:nil];
     });
   }];
+}
+
+- (void)runRecentDocumentsTest {
+  NSString *(^fail)(NSString *) = ^NSString *(NSString *message) {
+    return [@"failed:" stringByAppendingString:message];
+  };
+
+  [NSUserDefaults.standardUserDefaults removeObjectForKey:[self recentDocumentsKey]];
+  [self updateOpenRecentMenu];
+
+  NSFileManager *fileManager = NSFileManager.defaultManager;
+  NSURL *tempDirectory = [NSURL fileURLWithPath:[NSTemporaryDirectory() stringByAppendingPathComponent:[[NSUUID UUID] UUIDString]] isDirectory:YES];
+  NSError *error = nil;
+  if (![fileManager createDirectoryAtURL:tempDirectory withIntermediateDirectories:YES attributes:nil error:&error]) {
+    [self finishRecentDocumentsTest:fail(error.localizedDescription ?: @"temp-directory") tempDirectory:tempDirectory];
+    return;
+  }
+
+  NSMutableArray<NSURL *> *urls = [NSMutableArray array];
+  for (NSUInteger index = 0; index < 6; index++) {
+    NSURL *url = [tempDirectory URLByAppendingPathComponent:[NSString stringWithFormat:@"recent-%lu.md", (unsigned long)index]];
+    NSString *content = [NSString stringWithFormat:@"# Recent %lu\n\nBody", (unsigned long)index];
+    if (![content writeToURL:url atomically:YES encoding:NSUTF8StringEncoding error:&error]) {
+      [self finishRecentDocumentsTest:fail(error.localizedDescription ?: @"write-file") tempDirectory:tempDirectory];
+      return;
+    }
+    [urls addObject:url];
+    [self openDocumentAtURL:url removeIfMissing:NO];
+  }
+
+  NSArray<NSString *> *paths = [self recentDocumentPaths];
+  if (paths.count != DeskMDMaximumRecentDocuments) {
+    [self finishRecentDocumentsTest:fail([NSString stringWithFormat:@"count:%lu", (unsigned long)paths.count]) tempDirectory:tempDirectory];
+    return;
+  }
+
+  if (![paths.firstObject isEqualToString:urls[5].path.stringByStandardizingPath]) {
+    [self finishRecentDocumentsTest:fail(@"latest-order") tempDirectory:tempDirectory];
+    return;
+  }
+
+  if ([paths containsObject:urls[0].path.stringByStandardizingPath]) {
+    [self finishRecentDocumentsTest:fail(@"maximum-trim") tempDirectory:tempDirectory];
+    return;
+  }
+
+  [self addRecentDocumentURL:urls[3]];
+  paths = [self recentDocumentPaths];
+  if (paths.count != DeskMDMaximumRecentDocuments || ![paths.firstObject isEqualToString:urls[3].path.stringByStandardizingPath]) {
+    [self finishRecentDocumentsTest:fail(@"dedupe-order") tempDirectory:tempDirectory];
+    return;
+  }
+
+  NSUInteger expectedMenuItems = DeskMDMaximumRecentDocuments + 2;
+  if (self.openRecentMenu.numberOfItems != expectedMenuItems) {
+    [self finishRecentDocumentsTest:fail([NSString stringWithFormat:@"menu-items:%ld", (long)self.openRecentMenu.numberOfItems]) tempDirectory:tempDirectory];
+    return;
+  }
+
+  NSURL *missingURL = [tempDirectory URLByAppendingPathComponent:@"missing.md"];
+  [self addRecentDocumentURL:missingURL];
+  [self openDocumentAtURL:missingURL removeIfMissing:YES];
+  if ([[self recentDocumentPaths] containsObject:missingURL.path.stringByStandardizingPath]) {
+    [self finishRecentDocumentsTest:fail(@"missing-not-removed") tempDirectory:tempDirectory];
+    return;
+  }
+
+  [self clearRecentDocuments:nil];
+  if ([self recentDocumentPaths].count != 0 || self.openRecentMenu.numberOfItems != 1) {
+    [self finishRecentDocumentsTest:fail(@"clear-menu") tempDirectory:tempDirectory];
+    return;
+  }
+
+  [self finishRecentDocumentsTest:@"passed" tempDirectory:tempDirectory];
+}
+
+- (void)finishRecentDocumentsTest:(NSString *)result tempDirectory:(NSURL *)tempDirectory {
+  [NSUserDefaults.standardUserDefaults removeObjectForKey:[self recentDocumentsKey]];
+  [self updateOpenRecentMenu];
+  if (tempDirectory) {
+    [NSFileManager.defaultManager removeItemAtURL:tempDirectory error:nil];
+  }
+
+  printf("Recent documents test result: %s\n", result.UTF8String);
+  fflush(stdout);
+  dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.2 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+    [NSApp terminate:nil];
+  });
 }
 
 - (void)runTopbarVisualTestAtIndex:(NSUInteger)index results:(NSMutableArray<NSString *> *)results {
@@ -474,6 +747,14 @@
   alert.alertStyle = NSAlertStyleCritical;
   [alert runModal];
   [NSApp terminate:nil];
+}
+
+- (void)showNonFatalError:(NSString *)message {
+  NSAlert *alert = [[NSAlert alloc] init];
+  alert.messageText = @"DeskMD";
+  alert.informativeText = message;
+  alert.alertStyle = NSAlertStyleWarning;
+  [alert beginSheetModalForWindow:self.window completionHandler:nil];
 }
 
 @end

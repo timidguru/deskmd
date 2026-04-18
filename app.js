@@ -276,6 +276,19 @@ window.deskMdSaveFailed = (message) => {
   setStatus(message || "저장 실패");
 };
 
+window.deskMdOpenDocument = (filename, content) => {
+  currentFileName = filename || "document.md";
+  editor.value = content || "";
+  render();
+  updateDocumentMeta();
+  autosave();
+  setStatus(`${currentFileName} 열림`);
+};
+
+window.deskMdCreateNewDocument = () => {
+  createNewDocument();
+};
+
 window.deskMdCopyCompleted = () => {
   setStatus("선택한 텍스트 복사됨");
 };

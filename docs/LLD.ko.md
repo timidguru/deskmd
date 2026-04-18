@@ -41,6 +41,8 @@ DeskMD는 두 레이어로 구성된다.
 ├── scripts
 │   ├── build-macos-app.sh
 │   ├── generate-app-icon.js
+│   ├── recent-documents-test.js
+│   ├── topbar-visual-test.js
 │   └── ux-smoke-test.js
 └── dist
     └── DeskMD.app
@@ -82,6 +84,8 @@ app.delegate = delegate;
 - 웹 확인 요청을 네이티브 `NSAlert` confirm sheet로 처리.
 - 웹 저장 요청을 `NSSavePanel`로 처리.
 - 미리보기 선택 텍스트 복사를 `NSPasteboard`로 처리.
+- `Open Recent`를 포함한 네이티브 `File` 메뉴 구성.
+- 최근 문서 경로를 macOS user defaults에 최대 5개까지 저장.
 
 ### 3.3 윈도우 설정
 
@@ -112,9 +116,37 @@ app.delegate = delegate;
 4. 사용자가 파일을 선택하면 `completionHandler(panel.URLs)` 호출.
 5. 선택된 첫 파일을 `currentDocumentURL`에 저장.
 6. 선택된 첫 파일의 부모 폴더를 `lastDocumentDirectoryURL`에 저장.
-7. 취소하면 `completionHandler(nil)` 호출.
+7. 선택된 파일을 최근 문서 목록에 추가.
+8. 취소하면 `completionHandler(nil)` 호출.
 
-### 3.5 외부 링크 처리
+### 3.5 최근 문서
+
+최근 문서 상태는 macOS 래퍼가 관리한다. 그래서 툴바 버튼을 더 늘리지 않고 네이티브 메뉴에 기능을 둘 수 있다.
+
+저장 방식:
+
+- Key: `DeskMDRecentDocuments`
+- 저장소: `NSUserDefaults.standardUserDefaults`
+- 값: 정렬된 파일 경로 배열
+- 최대 개수: `5`
+
+갱신 지점:
+
+- WebView 파일 선택기를 통한 파일 열기 성공.
+- 네이티브 `File > Open...` 열기 성공.
+- `Save` 또는 `Save As` 성공.
+
+메뉴 동작:
+
+1. 저장된 목록이 바뀔 때마다 `File > Open Recent`를 다시 구성한다.
+2. 가장 최근 문서를 맨 위에 표시한다.
+3. 이미 있는 문서를 다시 열면 중복 추가하지 않고 맨 위로 이동한다.
+4. 존재하지 않는 파일은 사용자가 열려고 시도할 때 목록에서 제거한다.
+5. `Clear Menu`는 최근 문서 경로를 모두 제거한다.
+
+최근 문서를 네이티브 메뉴에서 열면 래퍼가 UTF-8 파일 내용을 읽고 WebView 안의 `window.deskMdOpenDocument(filename, content)`를 호출한다.
+
+### 3.6 외부 링크 처리
 
 `WKNavigationDelegate`에서 링크 클릭을 감지한다.
 
@@ -195,6 +227,8 @@ macOS 앱은 `--ux-smoke-test` 실행 인자를 받으면 WebView 로드 후 내
 
 macOS 앱은 `--topbar-visual-test` 실행 인자를 받으면 앱 창을 데스크톱 폭과 좁은 폭으로 조정하고, 빌드된 WebView 안에서 상단 툴바 geometry를 평가한다. 상단 툴바, 작업 영역, 액션 버튼이 viewport 안에 보이고 서로 겹치지 않는지 확인한 뒤 종료한다. `scripts/topbar-visual-test.js`는 `dist/DeskMD.app`에 이 레이아웃 가드를 실행하고, `--force-dark-appearance`를 붙인 다크 외관 패스를 한 번 더 수행해 다크 토큰과 기본 텍스트 대비를 확인한다.
 
+macOS 앱은 `--recent-documents-test` 실행 인자를 받으면 임시 Markdown 파일을 만들고 최근 문서 정렬, 메뉴 재구성, 누락 파일 제거, 메뉴 비우기를 검증한 뒤 종료한다. `scripts/recent-documents-test.js`는 `dist/DeskMD.app`에 이 가드를 실행한다.
+
 현재 UX smoke test 검증 범위:
 
 - 테스트 마크다운 주입 후 미리보기 렌더링 확인.
@@ -212,6 +246,15 @@ macOS 앱은 `--topbar-visual-test` 실행 인자를 받으면 앱 창을 데스
 - 상단 툴바, 문서 영역, 액션 영역, 작업 영역, `New`/`Open`/`Save`/`Save As` 버튼이 viewport 안에 보이는지 확인.
 - 작업 영역이 상단 툴바와 겹치지 않는지 확인.
 - 다크 외관 강제 실행 시 예상 CSS 토큰이 적용되고 핵심 텍스트 대비가 4.5:1 이상인지 확인.
+
+현재 recent documents test 검증 범위:
+
+- 최근 문서 목록이 최대 5개 경로로 제한되는지 확인.
+- 최신 문서가 맨 위에 오는지 확인.
+- 중복 항목은 반복 추가하지 않고 맨 위로 이동하는지 확인.
+- 네이티브 `Open Recent` 메뉴가 저장된 경로 기준으로 재구성되는지 확인.
+- 존재하지 않는 파일을 열려고 하면 최근 문서 목록에서 제거되는지 확인.
+- `Clear Menu`가 저장된 목록을 비우는지 확인.
 
 저장/열기 액션은 테스트 중 macOS 패널을 실제로 열지 않고 mock action log에 기록한다. 이는 모달 패널 때문에 자동 테스트가 멈추지 않게 하기 위한 테스트 전용 동작이며, 일반 실행 모드에는 적용되지 않는다.
 
@@ -241,6 +284,8 @@ let saveTimer = 0;
 - `setUpdateStatus(message, tone)`: 문서 상태와 분리된 렌더링 라이브러리 업데이트 확인 메시지 갱신.
 - `autosave()`: debounce 후 `localStorage` 저장.
 - `downloadFile(content, filename, type, mode)`: 앱에서는 native save bridge로 저장 요청, 브라우저에서는 Blob 다운로드 실행.
+- `window.deskMdOpenDocument(filename, content)`: 네이티브 메뉴 열기 요청을 받아 에디터, 미리보기, 메타데이터, 자동 저장, 상태 텍스트를 갱신.
+- `window.deskMdCreateNewDocument()`: 네이티브 `File > New` 메뉴가 툴바와 같은 새 문서 흐름을 재사용하도록 연결.
 
 ## 5. 렌더링 흐름
 
@@ -391,5 +436,4 @@ open "dist/DeskMD.app"
 - 라이브러리 업데이트: 원격 스크립트는 실행하지 않고 최신 버전 여부만 확인한다.
 - 저장 UX: 현재 문서 URL이 있으면 `Save`가 바로 저장하고, 최초 저장과 `Save As`는 `NSSavePanel`을 사용한다.
 - 파일 권한: sandboxed App Store 배포를 목표로 하면 보안 스코프 북마크 처리가 필요하다.
-- 앱 아이콘: 현재 전용 앱 아이콘이 없다.
-- 테스트: 현재는 빌드/문법/서명 검증 중심이다. UI 동작 자동화 테스트는 별도 추가가 필요하다.
+- 테스트: 현재는 빌드/문법/서명 검증, UX smoke, 상단 툴바 레이아웃, 다크 외관 smoke, 최근 문서 메뉴 동작을 검증한다.

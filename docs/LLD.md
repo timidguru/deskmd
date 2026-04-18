@@ -41,6 +41,8 @@ DeskMD has two layers.
 ├── scripts
 │   ├── build-macos-app.sh
 │   ├── generate-app-icon.js
+│   ├── recent-documents-test.js
+│   ├── topbar-visual-test.js
 │   └── ux-smoke-test.js
 └── dist
     └── DeskMD.app
@@ -82,6 +84,8 @@ Main responsibilities:
 - Handle web confirm requests through a native `NSAlert` sheet.
 - Handle web save requests through `NSSavePanel`.
 - Copy selected preview text through `NSPasteboard`.
+- Build the native `File` menu, including `Open Recent`.
+- Store up to five recent document paths in macOS user defaults.
 
 ### 3.3 Window Configuration
 
@@ -112,9 +116,37 @@ Flow:
 4. If the user selects a file, call `completionHandler(panel.URLs)`.
 5. Save the first selected file to `currentDocumentURL`.
 6. Save the first selected file's parent folder to `lastDocumentDirectoryURL`.
-7. If the user cancels, call `completionHandler(nil)`.
+7. Add the selected file to the recent documents list.
+8. If the user cancels, call `completionHandler(nil)`.
 
-### 3.5 External Link Handling
+### 3.5 Recent Documents
+
+The macOS wrapper owns recent document state so the feature can live in the native menu instead of adding more toolbar controls.
+
+Storage:
+
+- Key: `DeskMDRecentDocuments`
+- Store: `NSUserDefaults.standardUserDefaults`
+- Value: ordered file path array
+- Maximum size: `5`
+
+Update points:
+
+- Successful file open through the WebView file picker.
+- Successful native `File > Open...` open.
+- Successful `Save` or `Save As`.
+
+Menu behavior:
+
+1. `File > Open Recent` is rebuilt whenever the stored list changes.
+2. The newest document is shown first.
+3. Reopening an existing entry moves it to the top instead of duplicating it.
+4. Missing files are removed when the user tries to open them.
+5. `Clear Menu` removes all recent document paths.
+
+When a recent file is opened from the native menu, the wrapper reads the UTF-8 file content and calls `window.deskMdOpenDocument(filename, content)` inside the WebView.
+
+### 3.6 External Link Handling
 
 `WKNavigationDelegate` detects link clicks.
 
@@ -194,6 +226,8 @@ Main functions:
 - `setUpdateStatus(message, tone)`: Updates renderer library update check text separately from document status.
 - `autosave()`: Debounces and writes to `localStorage`.
 - `downloadFile(content, filename, type, mode)`: Requests native save in the app, or uses Blob download in a browser.
+- `window.deskMdOpenDocument(filename, content)`: Receives a native menu open request and updates the editor, preview, metadata, autosave, and status text.
+- `window.deskMdCreateNewDocument()`: Lets the native `File > New` menu reuse the same new-document flow as the toolbar.
 
 ### 4.4 Preview Copy
 
@@ -222,6 +256,8 @@ When the macOS app receives the `--ux-smoke-test` argument, it evaluates interna
 
 When the macOS app receives the `--topbar-visual-test` argument, it resizes the app to desktop and narrow window widths, evaluates top toolbar geometry inside the built WebView, verifies the toolbar, workspace, and action buttons remain visible and non-overlapping, then exits. `scripts/topbar-visual-test.js` runs this layout guard against `dist/DeskMD.app`, then repeats the same pass with `--force-dark-appearance` to verify dark appearance tokens and basic text contrast.
 
+When the macOS app receives the `--recent-documents-test` argument, it creates temporary Markdown files, exercises recent document ordering and menu rebuilding, verifies missing-file removal and clear behavior, then exits. `scripts/recent-documents-test.js` runs this guard against `dist/DeskMD.app`.
+
 Current UX smoke test coverage:
 
 - Inject test Markdown and verify preview rendering.
@@ -239,6 +275,15 @@ Current topbar layout test coverage:
 - Verify the topbar, document strip, action area, workspace, and `New`/`Open`/`Save`/`Save As` buttons stay visible and inside the viewport.
 - Verify the workspace does not overlap the topbar.
 - Verify forced dark appearance applies the expected CSS tokens and keeps core text contrast above 4.5:1.
+
+Current recent documents test coverage:
+
+- Verify recent document list is capped at five paths.
+- Verify newest-first ordering.
+- Verify duplicate entries move to the top instead of being repeated.
+- Verify the native `Open Recent` menu is rebuilt from stored paths.
+- Verify missing files are removed when opened from recent documents.
+- Verify `Clear Menu` empties the stored list.
 
 During tests, save/open actions are recorded to a mock action log instead of opening macOS panels. This is test-only behavior to avoid blocking automation on modal panels and does not apply in normal app mode.
 
@@ -391,5 +436,4 @@ open "dist/DeskMD.app"
 - Library updates: the app only checks whether newer versions exist and never executes remote scripts.
 - Save UX: `Save` writes directly when a current document URL exists; first-time saves and `Save As` use `NSSavePanel`.
 - File permissions: sandboxed App Store distribution would require security-scoped bookmarks.
-- App icon: there is no dedicated app icon yet.
-- Tests: current tests focus on build checks, syntax checks, signing verification, and the built-in UX smoke path.
+- Tests: current tests cover build checks, syntax checks, signing verification, UX smoke behavior, topbar layout, dark appearance smoke coverage, and recent document menu behavior.

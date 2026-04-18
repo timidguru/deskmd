@@ -8,6 +8,7 @@ DeskMD is a lightweight Markdown editor for macOS. Write on the left, preview on
 
 - Split Markdown editor and live preview
 - Open `.md`, `.markdown`, and `.txt` files
+- Reopen recent files from `File > Open Recent`
 - Save Markdown with `Cmd+S`
 - Local autosave through WebView `localStorage`
 - Preview text selection and `Cmd+C` clipboard copy
@@ -82,9 +83,10 @@ Run individual app tests:
 ```sh
 npm run test:ux
 npm run test:topbar
+npm run test:recent
 ```
 
-The UX smoke test launches `dist/DeskMD.app/Contents/MacOS/DeskMD` with `--ux-smoke-test`, verifies rendering, preview copy, and core button actions, then checks the macOS clipboard with `pbpaste`. The topbar test runs the built app at desktop and narrow window widths to guard the toolbar layout, then repeats the pass with forced dark appearance to verify dark tokens and basic text contrast.
+The UX smoke test launches `dist/DeskMD.app/Contents/MacOS/DeskMD` with `--ux-smoke-test`, verifies rendering, preview copy, and core button actions, then checks the macOS clipboard with `pbpaste`. The topbar test runs the built app at desktop and narrow window widths to guard the toolbar layout, then repeats the pass with forced dark appearance to verify dark tokens and basic text contrast. The recent documents test verifies recent file ordering, deduplication, maximum size, missing-file removal, and clearing.
 
 ## Offline Rendering
 
@@ -109,6 +111,7 @@ The app never loads remote JavaScript for rendering. If the device is online, it
 │   └── Info.plist
 ├── scripts
 │   ├── build-macos-app.sh
+│   ├── recent-documents-test.js
 │   ├── topbar-visual-test.js
 │   └── ux-smoke-test.js
 ├── docs
