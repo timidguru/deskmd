@@ -205,6 +205,7 @@ Main methods:
 - `getPreviewText()`: Returns preview plain text.
 - `getStatus()`: Returns status text.
 - `getUpdateStatus()`: Returns renderer library update check text.
+- `getTopbarLayoutSnapshot()`: Returns viewport and top toolbar geometry for layout regression tests.
 - `clickNewDocument()`: Clicks the `New Document` DOM button.
 - `clickOpenFile()`: Clicks the `Open` DOM button.
 - `clickSaveMarkdown()`: Clicks the `Save` DOM button.
@@ -212,6 +213,8 @@ Main methods:
 - `copyPreviewTextForTest()`: Copies preview text through the native clipboard bridge.
 
 When the macOS app receives the `--ux-smoke-test` argument, it evaluates internal JavaScript after the WebView finishes loading, verifies rendering and clipboard bridging, then exits. `scripts/ux-smoke-test.js` runs the executable in `dist/DeskMD.app` with this mode and verifies the clipboard result through `pbpaste`.
+
+When the macOS app receives the `--topbar-visual-test` argument, it resizes the app to desktop and narrow window widths, evaluates top toolbar geometry inside the built WebView, verifies the toolbar, workspace, and action buttons remain visible and non-overlapping, then exits. `scripts/topbar-visual-test.js` runs this layout guard against `dist/DeskMD.app`.
 
 Current UX smoke test coverage:
 
@@ -222,6 +225,13 @@ Current UX smoke test coverage:
 - Verify `Save` action and save payload.
 - Verify `Save As` action and save payload.
 - Verify `Open` action.
+
+Current topbar layout test coverage:
+
+- Verify desktop-width toolbar geometry.
+- Verify narrow-width toolbar geometry.
+- Verify the topbar, document strip, action area, workspace, and `New`/`Open`/`Save`/`Save As` buttons stay visible and inside the viewport.
+- Verify the workspace does not overlap the topbar.
 
 During tests, save/open actions are recorded to a mock action log instead of opening macOS panels. This is test-only behavior to avoid blocking automation on modal panels and does not apply in normal app mode.
 

@@ -353,6 +353,43 @@ window.deskMdTest = {
   getUpdateStatus() {
     return updateStatus.textContent;
   },
+  getTopbarLayoutSnapshot() {
+    const readRect = (selector) => {
+      const element = document.querySelector(selector);
+      if (!element) {
+        return null;
+      }
+
+      const rect = element.getBoundingClientRect();
+      const style = window.getComputedStyle(element);
+      return {
+        left: rect.left,
+        top: rect.top,
+        right: rect.right,
+        bottom: rect.bottom,
+        width: rect.width,
+        height: rect.height,
+        display: style.display,
+        visibility: style.visibility
+      };
+    };
+
+    return {
+      viewport: {
+        width: window.innerWidth,
+        height: window.innerHeight
+      },
+      topbar: readRect(".topbar"),
+      documentStrip: readRect(".document-strip"),
+      actions: readRect(".actions"),
+      workspace: readRect(".workspace"),
+      buttons: [...document.querySelectorAll(".actions button")].map((button) => ({
+        id: button.id,
+        label: button.textContent.trim(),
+        rect: readRect(`#${button.id}`)
+      }))
+    };
+  },
   getActions() {
     return testActions;
   },
