@@ -42,6 +42,7 @@ DeskMD는 두 레이어로 구성된다.
 │   ├── build-macos-app.sh
 │   ├── notarize-macos-app.sh
 │   ├── generate-app-icon.js
+│   ├── release-smoke-test.js
 │   ├── recent-documents-test.js
 │   ├── topbar-visual-test.js
 │   └── ux-smoke-test.js
@@ -235,6 +236,8 @@ macOS 앱은 `--topbar-visual-test` 실행 인자를 받으면 앱 창을 데스
 
 macOS 앱은 `--recent-documents-test` 실행 인자를 받으면 임시 Markdown 파일을 만들고 최근 문서 정렬, 메뉴 재구성, 누락 파일 제거, 메뉴 비우기를 검증한 뒤 종료한다. `scripts/recent-documents-test.js`는 `dist/DeskMD.app`에 이 가드를 실행한다.
 
+`scripts/release-smoke-test.js`는 `release:mac`를 필수 환경 변수 없이 실행해, 기대한 에러 메시지와 사용법 안내를 출력하며 실패하는지 확인한다.
+
 현재 UX smoke test 검증 범위:
 
 - 테스트 마크다운 주입 후 미리보기 렌더링 확인.
@@ -265,6 +268,12 @@ macOS 앱은 `--recent-documents-test` 실행 인자를 받으면 임시 Markdow
 - 존재하지 않는 파일을 열려고 하면 최근 문서 목록에서 제거되는지 확인.
 - 앱 재실행 후 `NSUserDefaults`에 저장된 최근 문서 목록이 다시 로드되는지 확인.
 - `Clear Menu`가 저장된 목록을 비우는지 확인.
+
+현재 release smoke test 검증 범위:
+
+- `DEVELOPER_ID_APPLICATION`이 없을 때 `release:mac`가 성공하지 않는지 확인.
+- 누락된 signing identity에 대한 기대한 에러 메시지를 출력하는지 확인.
+- 사용법 안내를 함께 출력하는지 확인.
 
 저장/열기 액션은 테스트 중 macOS 패널을 실제로 열지 않고 mock action log에 기록한다. 이는 모달 패널 때문에 자동 테스트가 멈추지 않게 하기 위한 테스트 전용 동작이며, 일반 실행 모드에는 적용되지 않는다.
 

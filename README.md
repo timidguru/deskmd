@@ -92,9 +92,10 @@ Run individual app tests:
 npm run test:ux
 npm run test:topbar
 npm run test:recent
+npm run test:release
 ```
 
-The UX smoke test launches `dist/DeskMD.app/Contents/MacOS/DeskMD` with `--ux-smoke-test`, verifies rendering, the real preview selected-text `Cmd+C` path, whitespace and line-break preservation, and core button actions, then checks the macOS clipboard with `pbpaste`. The topbar test runs the built app at desktop and narrow window widths to guard the toolbar layout, then repeats the pass with forced dark appearance to verify dark tokens, basic text contrast, and secondary text contrast for elements such as the version badge and renderer update status. The recent documents test verifies recent file ordering, deduplication, maximum size, missing-file removal, restore-after-relaunch behavior, and clearing.
+The UX smoke test launches `dist/DeskMD.app/Contents/MacOS/DeskMD` with `--ux-smoke-test`, verifies rendering, the real preview selected-text `Cmd+C` path, whitespace and line-break preservation, and core button actions, then checks the macOS clipboard with `pbpaste`. The topbar test runs the built app at desktop and narrow window widths to guard the toolbar layout, then repeats the pass with forced dark appearance to verify dark tokens, basic text contrast, and secondary text contrast for elements such as the version badge and renderer update status. The recent documents test verifies recent file ordering, deduplication, maximum size, missing-file removal, restore-after-relaunch behavior, and clearing. The release smoke test verifies that `release:mac` fails with the expected error and usage guidance when required environment variables are missing.
 
 ## Notarized Release
 
@@ -146,6 +147,7 @@ The app never loads remote JavaScript for rendering. If the device is online, it
 ├── scripts
 │   ├── build-macos-app.sh
 │   ├── notarize-macos-app.sh
+│   ├── release-smoke-test.js
 │   ├── recent-documents-test.js
 │   ├── topbar-visual-test.js
 │   └── ux-smoke-test.js

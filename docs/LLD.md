@@ -42,6 +42,7 @@ DeskMD has two layers.
 │   ├── build-macos-app.sh
 │   ├── notarize-macos-app.sh
 │   ├── generate-app-icon.js
+│   ├── release-smoke-test.js
 │   ├── recent-documents-test.js
 │   ├── topbar-visual-test.js
 │   └── ux-smoke-test.js
@@ -266,6 +267,8 @@ When the macOS app receives the `--topbar-visual-test` argument, it resizes the 
 
 When the macOS app receives the `--recent-documents-test` argument, it creates temporary Markdown files, exercises recent document ordering and menu rebuilding, verifies missing-file removal and clear behavior, then exits. `scripts/recent-documents-test.js` runs this guard against `dist/DeskMD.app`.
 
+`scripts/release-smoke-test.js` runs `release:mac` without the required environment variables and verifies that it fails with the expected error message and usage guidance.
+
 Current UX smoke test coverage:
 
 - Inject test Markdown and verify preview rendering.
@@ -296,6 +299,12 @@ Current recent documents test coverage:
 - Verify missing files are removed when opened from recent documents.
 - Verify the recent document list is restored from `NSUserDefaults` after relaunching the app.
 - Verify `Clear Menu` empties the stored list.
+
+Current release smoke test coverage:
+
+- Verify `release:mac` does not succeed when `DEVELOPER_ID_APPLICATION` is missing.
+- Verify it prints the expected missing-signing error message.
+- Verify it prints usage guidance alongside the failure.
 
 During tests, save/open actions are recorded to a mock action log instead of opening macOS panels. This is test-only behavior to avoid blocking automation on modal panels and does not apply in normal app mode.
 
