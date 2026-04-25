@@ -72,6 +72,14 @@ npm run check
 npm run build:mac
 ```
 
+Developer ID 서명과 공증까지 포함한 릴리스 빌드를 만듭니다:
+
+```sh
+DEVELOPER_ID_APPLICATION="Developer ID Application: Your Name (TEAMID)" \
+APPLE_NOTARY_PROFILE="deskmd-notary" \
+npm run release:mac
+```
+
 빌드된 앱을 대상으로 전체 검증을 실행합니다:
 
 ```sh
@@ -86,7 +94,33 @@ npm run test:topbar
 npm run test:recent
 ```
 
-UX smoke test는 `dist/DeskMD.app/Contents/MacOS/DeskMD`를 `--ux-smoke-test` 인자로 실행합니다. 렌더링, 미리보기 선택 텍스트의 실제 `Cmd+C` 복사, 공백과 줄바꿈 보존, 주요 버튼 동작을 검증한 뒤 macOS 클립보드를 `pbpaste`로 확인합니다. topbar test는 빌드된 앱을 데스크톱 폭과 좁은 창 폭에서 실행해 툴바 레이아웃을 보호하고, 다크 외관 강제 실행을 한 번 더 수행해 다크 토큰과 기본 텍스트 대비를 확인합니다. recent documents test는 최근 파일 순서, 중복 제거, 최대 개수, 누락 파일 제거, 앱 재실행 후 목록 복원, 메뉴 비우기를 검증합니다.
+UX smoke test는 `dist/DeskMD.app/Contents/MacOS/DeskMD`를 `--ux-smoke-test` 인자로 실행합니다. 렌더링, 미리보기 선택 텍스트의 실제 `Cmd+C` 복사, 공백과 줄바꿈 보존, 주요 버튼 동작을 검증한 뒤 macOS 클립보드를 `pbpaste`로 확인합니다. topbar test는 빌드된 앱을 데스크톱 폭과 좁은 창 폭에서 실행해 툴바 레이아웃을 보호하고, 다크 외관 강제 실행을 한 번 더 수행해 다크 토큰과 기본 텍스트 대비, 버전 배지와 업데이트 상태 같은 보조 텍스트 대비를 확인합니다. recent documents test는 최근 파일 순서, 중복 제거, 최대 개수, 누락 파일 제거, 앱 재실행 후 목록 복원, 메뉴 비우기를 검증합니다.
+
+## 공증 배포
+
+`npm run release:mac`는 다음 순서로 공증 배포 산출물을 만듭니다.
+
+1. `DeskMD.app`를 Developer ID Application 인증서로 서명
+2. hardened runtime과 timestamp를 포함해 다시 서명
+3. `dist/DeskMD.app.zip` 생성
+4. `xcrun notarytool submit --wait`로 공증 제출
+5. 앱 번들에 notarization ticket staple
+
+필수 환경 변수:
+
+- `DEVELOPER_ID_APPLICATION`
+
+공증 인증은 둘 중 하나를 사용합니다:
+
+- 권장: `APPLE_NOTARY_PROFILE`
+- 대안: `APPLE_ID`, `APPLE_TEAM_ID`, `APPLE_APP_SPECIFIC_PASSWORD`
+
+선택 환경 변수:
+
+- `DESKMD_NOTARY_PRIMARY_BUNDLE_ID`
+- `DESKMD_CODESIGN_ENTITLEMENTS`
+
+기본 `build:mac`는 개발용 ad-hoc 서명 빌드이고, `release:mac`만 공증 배포 경로를 사용합니다.
 
 ## 오프라인 렌더링
 
@@ -111,6 +145,7 @@ DeskMD는 앱에 포함된 브라우저 라이브러리로 Markdown을 렌더링
 │   └── Info.plist
 ├── scripts
 │   ├── build-macos-app.sh
+│   ├── notarize-macos-app.sh
 │   ├── recent-documents-test.js
 │   ├── topbar-visual-test.js
 │   └── ux-smoke-test.js

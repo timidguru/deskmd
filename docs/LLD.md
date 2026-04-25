@@ -40,6 +40,7 @@ DeskMD has two layers.
 │   └── Info.plist
 ├── scripts
 │   ├── build-macos-app.sh
+│   ├── notarize-macos-app.sh
 │   ├── generate-app-icon.js
 │   ├── recent-documents-test.js
 │   ├── topbar-visual-test.js
@@ -248,6 +249,7 @@ Main methods:
 - `getStatus()`: Returns status text.
 - `getStoredFileName()`: Returns the persisted filename from `localStorage`.
 - `getUpdateStatus()`: Returns renderer library update check text.
+- `setUpdateStatusForTest(message, tone)`: Injects an update-status message for dark appearance tests and returns its display state.
 - `getTopbarLayoutSnapshot()`: Returns viewport and top toolbar geometry for layout regression tests.
 - `clickNewDocument()`: Clicks the `New Document` DOM button.
 - `clickOpenFile()`: Clicks the `Open` DOM button.
@@ -260,7 +262,7 @@ Main methods:
 
 When the macOS app receives the `--ux-smoke-test` argument, it evaluates internal JavaScript after the WebView finishes loading, verifies rendering and clipboard bridging, then exits. `scripts/ux-smoke-test.js` runs the executable in `dist/DeskMD.app` with this mode and verifies the clipboard result through `pbpaste`.
 
-When the macOS app receives the `--topbar-visual-test` argument, it resizes the app to desktop and narrow window widths, evaluates top toolbar geometry inside the built WebView, verifies the toolbar, workspace, and action buttons remain visible and non-overlapping, then exits. `scripts/topbar-visual-test.js` runs this layout guard against `dist/DeskMD.app`, then repeats the same pass with `--force-dark-appearance` to verify dark appearance tokens and basic text contrast.
+When the macOS app receives the `--topbar-visual-test` argument, it resizes the app to desktop and narrow window widths, evaluates top toolbar geometry inside the built WebView, verifies the toolbar, workspace, and action buttons remain visible and non-overlapping, then exits. `scripts/topbar-visual-test.js` runs this layout guard against `dist/DeskMD.app`, then repeats the same pass with `--force-dark-appearance` to verify dark appearance tokens, basic text contrast, and secondary text contrast for elements such as the version badge and renderer update status.
 
 When the macOS app receives the `--recent-documents-test` argument, it creates temporary Markdown files, exercises recent document ordering and menu rebuilding, verifies missing-file removal and clear behavior, then exits. `scripts/recent-documents-test.js` runs this guard against `dist/DeskMD.app`.
 
@@ -283,6 +285,7 @@ Current topbar layout test coverage:
 - Verify the topbar, document strip, action area, workspace, and `New`/`Open`/`Save`/`Save As` buttons stay visible and inside the viewport.
 - Verify the workspace does not overlap the topbar.
 - Verify forced dark appearance applies the expected CSS tokens and keeps core text contrast above 4.5:1.
+- Verify forced dark appearance keeps secondary text such as the version badge, update status, and document status above 4.5:1 contrast.
 
 Current recent documents test coverage:
 
@@ -431,6 +434,22 @@ Build steps:
 8. Set executable permissions.
 9. Run ad-hoc codesign when available.
 10. Remove the build `ModuleCache`.
+
+File: `scripts/notarize-macos-app.sh`
+
+Notarized release steps:
+
+1. Run `build-macos-app.sh` with hardened-runtime/timestamp signing enabled through `DEVELOPER_ID_APPLICATION`.
+2. Create `dist/DeskMD.app.zip`.
+3. Run `xcrun notarytool submit --wait` using either `APPLE_NOTARY_PROFILE` or `APPLE_ID`/`APPLE_TEAM_ID`/`APPLE_APP_SPECIFIC_PASSWORD`.
+4. On success, run `xcrun stapler staple` and `xcrun stapler validate`.
+
+Release script environment variables:
+
+- required: `DEVELOPER_ID_APPLICATION`
+- preferred auth: `APPLE_NOTARY_PROFILE`
+- fallback auth: `APPLE_ID`, `APPLE_TEAM_ID`, `APPLE_APP_SPECIFIC_PASSWORD`
+- optional: `DESKMD_NOTARY_PRIMARY_BUNDLE_ID`, `DESKMD_CODESIGN_ENTITLEMENTS`
 
 ## 10. Run
 

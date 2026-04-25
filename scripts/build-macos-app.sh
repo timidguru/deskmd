@@ -10,6 +10,9 @@ RESOURCES_DIR="$CONTENTS_DIR/Resources"
 EDITOR_DIR="$RESOURCES_DIR/Editor"
 MODULE_CACHE_DIR="$BUILD_DIR/ModuleCache"
 ICON_FILE="$ROOT_DIR/macos/AppIcon.icns"
+SIGNING_IDENTITY="${DESKMD_SIGN_IDENTITY:--}"
+CODESIGN_RUNTIME="${DESKMD_CODESIGN_RUNTIME:-0}"
+ENTITLEMENTS_FILE="${DESKMD_CODESIGN_ENTITLEMENTS:-}"
 
 rm -rf "$APP_DIR"
 mkdir -p "$MACOS_DIR" "$EDITOR_DIR" "$MODULE_CACHE_DIR"
@@ -35,7 +38,14 @@ cp "$ICON_FILE" "$RESOURCES_DIR/AppIcon.icns"
 chmod +x "$MACOS_DIR/DeskMD"
 
 if command -v codesign >/dev/null 2>&1; then
-  codesign --force --deep --sign - "$APP_DIR" >/dev/null
+  codesign_args=(--force --deep --sign "$SIGNING_IDENTITY")
+  if [ "$CODESIGN_RUNTIME" = "1" ]; then
+    codesign_args+=(--options runtime --timestamp)
+  fi
+  if [ -n "$ENTITLEMENTS_FILE" ]; then
+    codesign_args+=(--entitlements "$ENTITLEMENTS_FILE")
+  fi
+  codesign "${codesign_args[@]}" "$APP_DIR" >/dev/null
 fi
 
 rm -rf "$MODULE_CACHE_DIR"

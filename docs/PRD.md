@@ -107,13 +107,11 @@ The product packages a web-based editor UI inside a local macOS app bundle and r
 - If internet access is available, the app only checks npm registry metadata for newer versions.
 - Light and dark appearances follow the macOS system color scheme through CSS media queries.
 - `Save As` and first-time saves are handled through the native macOS save panel.
-- The app is ad-hoc signed and is not notarized with an Apple Developer account.
+- Default developer builds use ad-hoc signing, while notarized distribution requires a separate release script and Apple Developer credentials.
 - Autosave data is stored in the app WebView's `localStorage`.
 - Recent document paths are stored in macOS user defaults and are limited to five entries.
 
 ## 9. Future Improvements
 
 - Low priority: revisit a broader Export flow with HTML/PDF choices later.
-- Extend dark appearance tests to cover secondary text such as the version badge and renderer update status.
 - Long-term: explore an optional WYSIWYG editing mode for the preview pane, while keeping the Markdown source editor as the primary editing model unless the product direction changes.
-- Add a notarized distribution build pipeline.

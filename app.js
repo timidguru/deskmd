@@ -347,6 +347,42 @@ function selectPreviewContents() {
   return selection.toString();
 }
 
+function readRect(selector) {
+  const element = document.querySelector(selector);
+  if (!element) {
+    return null;
+  }
+
+  const rect = element.getBoundingClientRect();
+  const style = window.getComputedStyle(element);
+  return {
+    left: rect.left,
+    top: rect.top,
+    right: rect.right,
+    bottom: rect.bottom,
+    width: rect.width,
+    height: rect.height,
+    display: style.display,
+    visibility: style.visibility
+  };
+}
+
+function readElementStyles(selector) {
+  const element = document.querySelector(selector);
+  if (!element) {
+    return null;
+  }
+
+  const style = window.getComputedStyle(element);
+  return {
+    color: style.color,
+    backgroundColor: style.backgroundColor,
+    borderColor: style.borderColor,
+    display: style.display,
+    visibility: style.visibility
+  };
+}
+
 window.deskMdTest = {
   enableActionMocks() {
     testActionMocks = true;
@@ -387,27 +423,15 @@ window.deskMdTest = {
   getUpdateStatus() {
     return updateStatus.textContent;
   },
-  getTopbarLayoutSnapshot() {
-    const readRect = (selector) => {
-      const element = document.querySelector(selector);
-      if (!element) {
-        return null;
-      }
-
-      const rect = element.getBoundingClientRect();
-      const style = window.getComputedStyle(element);
-      return {
-        left: rect.left,
-        top: rect.top,
-        right: rect.right,
-        bottom: rect.bottom,
-        width: rect.width,
-        height: rect.height,
-        display: style.display,
-        visibility: style.visibility
-      };
+  setUpdateStatusForTest(message, tone = "attention") {
+    setUpdateStatus(message, tone);
+    return {
+      text: updateStatus.textContent,
+      tone: updateStatus.dataset.tone || "",
+      display: window.getComputedStyle(updateStatus).display
     };
-
+  },
+  getTopbarLayoutSnapshot() {
     return {
       viewport: {
         width: window.innerWidth,
@@ -417,6 +441,12 @@ window.deskMdTest = {
       documentStrip: readRect(".document-strip"),
       actions: readRect(".actions"),
       workspace: readRect(".workspace"),
+      textStyles: {
+        topbar: readElementStyles(".topbar"),
+        appVersion: readElementStyles("#appVersion"),
+        updateStatus: readElementStyles("#updateStatus"),
+        documentStatus: readElementStyles("#status")
+      },
       buttons: [...document.querySelectorAll(".actions button")].map((button) => ({
         id: button.id,
         label: button.textContent.trim(),

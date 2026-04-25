@@ -72,6 +72,14 @@ Build the app:
 npm run build:mac
 ```
 
+Build a Developer ID signed and notarized release:
+
+```sh
+DEVELOPER_ID_APPLICATION="Developer ID Application: Your Name (TEAMID)" \
+APPLE_NOTARY_PROFILE="deskmd-notary" \
+npm run release:mac
+```
+
 Run all checks against the built app:
 
 ```sh
@@ -86,7 +94,33 @@ npm run test:topbar
 npm run test:recent
 ```
 
-The UX smoke test launches `dist/DeskMD.app/Contents/MacOS/DeskMD` with `--ux-smoke-test`, verifies rendering, the real preview selected-text `Cmd+C` path, whitespace and line-break preservation, and core button actions, then checks the macOS clipboard with `pbpaste`. The topbar test runs the built app at desktop and narrow window widths to guard the toolbar layout, then repeats the pass with forced dark appearance to verify dark tokens and basic text contrast. The recent documents test verifies recent file ordering, deduplication, maximum size, missing-file removal, restore-after-relaunch behavior, and clearing.
+The UX smoke test launches `dist/DeskMD.app/Contents/MacOS/DeskMD` with `--ux-smoke-test`, verifies rendering, the real preview selected-text `Cmd+C` path, whitespace and line-break preservation, and core button actions, then checks the macOS clipboard with `pbpaste`. The topbar test runs the built app at desktop and narrow window widths to guard the toolbar layout, then repeats the pass with forced dark appearance to verify dark tokens, basic text contrast, and secondary text contrast for elements such as the version badge and renderer update status. The recent documents test verifies recent file ordering, deduplication, maximum size, missing-file removal, restore-after-relaunch behavior, and clearing.
+
+## Notarized Release
+
+`npm run release:mac` produces a notarized release artifact by:
+
+1. signing `DeskMD.app` with a Developer ID Application certificate
+2. signing with hardened runtime and timestamp enabled
+3. creating `dist/DeskMD.app.zip`
+4. submitting the zip through `xcrun notarytool submit --wait`
+5. stapling the notarization ticket back onto the app bundle
+
+Required environment variable:
+
+- `DEVELOPER_ID_APPLICATION`
+
+Provide notarization auth with one of:
+
+- preferred: `APPLE_NOTARY_PROFILE`
+- fallback: `APPLE_ID`, `APPLE_TEAM_ID`, and `APPLE_APP_SPECIFIC_PASSWORD`
+
+Optional environment variables:
+
+- `DESKMD_NOTARY_PRIMARY_BUNDLE_ID`
+- `DESKMD_CODESIGN_ENTITLEMENTS`
+
+The default `build:mac` flow remains an ad-hoc signed developer build. Only `release:mac` uses the notarized distribution path.
 
 ## Offline Rendering
 
@@ -111,6 +145,7 @@ The app never loads remote JavaScript for rendering. If the device is online, it
 │   └── Info.plist
 ├── scripts
 │   ├── build-macos-app.sh
+│   ├── notarize-macos-app.sh
 │   ├── recent-documents-test.js
 │   ├── topbar-visual-test.js
 │   └── ux-smoke-test.js
