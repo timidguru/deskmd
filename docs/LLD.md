@@ -254,6 +254,8 @@ Main methods:
 - `clickSaveMarkdown()`: Clicks the `Save` DOM button.
 - `clickSaveAs()`: Clicks the `Save As` DOM button.
 - `completeSave(filename)`: Calls the native save-complete path and returns the current document name, stored filename, and status.
+- `selectAllPreviewText()`: Selects the full preview contents and returns the selected string.
+- `triggerPreviewCopyShortcut()`: Runs a test `Cmd+C` path against the current preview selection and returns the result.
 - `copyPreviewTextForTest()`: Copies preview text through the native clipboard bridge.
 
 When the macOS app receives the `--ux-smoke-test` argument, it evaluates internal JavaScript after the WebView finishes loading, verifies rendering and clipboard bridging, then exits. `scripts/ux-smoke-test.js` runs the executable in `dist/DeskMD.app` with this mode and verifies the clipboard result through `pbpaste`.
@@ -265,7 +267,8 @@ When the macOS app receives the `--recent-documents-test` argument, it creates t
 Current UX smoke test coverage:
 
 - Inject test Markdown and verify preview rendering.
-- Verify preview text copy through the native bridge.
+- Verify the real `Cmd+C` copy path for selected preview text.
+- Verify whitespace and line-break preservation from preview selection through the macOS clipboard.
 - Verify the `New Document` confirm path.
 - Verify the `New Document` action and status update.
 - Verify `Save` action and save payload for `.md`, `.markdown`, `.txt`, and extensionless documents.
@@ -288,6 +291,7 @@ Current recent documents test coverage:
 - Verify duplicate entries move to the top instead of being repeated.
 - Verify the native `Open Recent` menu is rebuilt from stored paths.
 - Verify missing files are removed when opened from recent documents.
+- Verify the recent document list is restored from `NSUserDefaults` after relaunching the app.
 - Verify `Clear Menu` empties the stored list.
 
 During tests, save/open actions are recorded to a mock action log instead of opening macOS panels. This is test-only behavior to avoid blocking automation on modal panels and does not apply in normal app mode.

@@ -114,8 +114,6 @@ The product packages a web-based editor UI inside a local macOS app bundle and r
 ## 9. Future Improvements
 
 - Low priority: revisit a broader Export flow with HTML/PDF choices later.
-- Improve preview copy tests to verify the real selected-text `Cmd+C` path, including whitespace and line break preservation.
-- Extend recent document tests to verify `NSUserDefaults` restoration after an app relaunch.
 - Extend dark appearance tests to cover secondary text such as the version badge and renderer update status.
 - Long-term: explore an optional WYSIWYG editing mode for the preview pane, while keeping the Markdown source editor as the primary editing model unless the product direction changes.
 - Add a notarized distribution build pipeline.

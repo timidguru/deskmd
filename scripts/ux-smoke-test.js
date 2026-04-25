@@ -25,8 +25,9 @@ if (!result.stdout.includes("passed:")) {
 }
 
 const clipboard = execFileSync("pbpaste", { encoding: "utf8" });
-if (!clipboard.includes("UX Smoke")) {
-  throw new Error(`clipboard did not include UX Smoke. Clipboard was: ${JSON.stringify(clipboard)}`);
+const expectedClipboard = "Paragraph before\n\n  code line\nnext line\n";
+if (clipboard !== expectedClipboard) {
+  throw new Error(`clipboard mismatch.\nExpected: ${JSON.stringify(expectedClipboard)}\nReceived: ${JSON.stringify(clipboard)}`);
 }
 
 console.log(result.stdout.trim());

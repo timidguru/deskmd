@@ -13,18 +13,21 @@
 @property(assign) BOOL runsRecentDocumentsTest;
 @property(assign) BOOL usesRecentDocumentsTestStore;
 @property(assign) BOOL forcesDarkAppearance;
+@property(copy) NSString *recentDocumentsTestPhase;
 @end
 
 @implementation AppDelegate
 
 static NSString *const DeskMDRecentDocumentsKey = @"DeskMDRecentDocuments";
 static NSString *const DeskMDRecentDocumentsTestKey = @"DeskMDRecentDocumentsTest";
+static NSString *const DeskMDRecentDocumentsTestMetadataKey = @"DeskMDRecentDocumentsTestMetadata";
 static const NSUInteger DeskMDMaximumRecentDocuments = 5;
 
 - (void)applicationDidFinishLaunching:(NSNotification *)notification {
   self.runsUXSmokeTest = [NSProcessInfo.processInfo.arguments containsObject:@"--ux-smoke-test"];
   self.runsTopbarVisualTest = [NSProcessInfo.processInfo.arguments containsObject:@"--topbar-visual-test"];
-  self.runsRecentDocumentsTest = [NSProcessInfo.processInfo.arguments containsObject:@"--recent-documents-test"];
+  self.recentDocumentsTestPhase = [self recentDocumentsTestPhaseFromArguments:NSProcessInfo.processInfo.arguments];
+  self.runsRecentDocumentsTest = self.recentDocumentsTestPhase.length > 0;
   self.usesRecentDocumentsTestStore = self.runsRecentDocumentsTest;
   self.forcesDarkAppearance = [NSProcessInfo.processInfo.arguments containsObject:@"--force-dark-appearance"];
   [self setupMainMenu];
@@ -473,6 +476,20 @@ static const NSUInteger DeskMDMaximumRecentDocuments = 5;
   [self.webView loadFileURL:url allowingReadAccessToURL:url.URLByDeletingLastPathComponent];
 }
 
+- (NSString *)recentDocumentsTestPhaseFromArguments:(NSArray<NSString *> *)arguments {
+  for (NSString *argument in arguments) {
+    if ([argument hasPrefix:@"--recent-documents-test-phase="]) {
+      return [argument componentsSeparatedByString:@"="].lastObject ?: @"";
+    }
+  }
+
+  if ([arguments containsObject:@"--recent-documents-test"]) {
+    return @"single";
+  }
+
+  return @"";
+}
+
 - (void)webView:(WKWebView *)webView didFinishNavigation:(WKNavigation *)navigation {
   if (self.runsRecentDocumentsTest) {
     self.runsRecentDocumentsTest = NO;
@@ -500,7 +517,12 @@ static const NSUInteger DeskMDMaximumRecentDocuments = 5;
        "if (window.deskMdTest.getDocumentName() !== 'ux-smoke.md') { return fail('document-name:' + window.deskMdTest.getDocumentName()); }"
        "let preview = window.deskMdTest.getPreviewText();"
        "if (!preview.includes('UX Smoke') || !preview.includes('copy')) { return fail('preview:' + preview); }"
-       "if (!window.deskMdTest.copyPreviewTextForTest()) { return fail('copy'); }"
+       "window.deskMdTest.setMarkdown('Paragraph before\\n\\n```\\n  code line\\nnext line\\n```', 'copy-smoke.md');"
+       "const selectedPreviewText = window.deskMdTest.selectAllPreviewText();"
+       "if (!selectedPreviewText.includes('\\n') || !selectedPreviewText.includes('  code line')) { return fail('copy-selection-shape:' + JSON.stringify(selectedPreviewText)); }"
+       "const copyResult = window.deskMdTest.triggerPreviewCopyShortcut();"
+       "if (!copyResult.defaultPrevented) { return fail('copy-shortcut-not-handled'); }"
+       "if (copyResult.selectedText !== selectedPreviewText) { return fail('copy-selection-mismatch:' + JSON.stringify(copyResult)); }"
        "window.deskMdTest.disableActionMocks();"
        "window.confirm = () => true;"
        "window.deskMdTest.setMarkdown('# Needs Confirm\\n\\nBody', 'confirm-test.md');"
@@ -557,6 +579,16 @@ static const NSUInteger DeskMDMaximumRecentDocuments = 5;
 }
 
 - (void)runRecentDocumentsTest {
+  if ([self.recentDocumentsTestPhase isEqualToString:@"seed"]) {
+    [self seedRecentDocumentsTest];
+    return;
+  }
+
+  if ([self.recentDocumentsTestPhase isEqualToString:@"verify"]) {
+    [self verifyRecentDocumentsRestoreTest];
+    return;
+  }
+
   NSString *(^fail)(NSString *) = ^NSString *(NSString *message) {
     return [@"failed:" stringByAppendingString:message];
   };
@@ -630,8 +662,133 @@ static const NSUInteger DeskMDMaximumRecentDocuments = 5;
   [self finishRecentDocumentsTest:@"passed" tempDirectory:tempDirectory];
 }
 
+- (void)seedRecentDocumentsTest {
+  NSString *(^fail)(NSString *) = ^NSString *(NSString *message) {
+    return [@"failed:" stringByAppendingString:message];
+  };
+
+  [NSUserDefaults.standardUserDefaults removeObjectForKey:[self recentDocumentsKey]];
+  [NSUserDefaults.standardUserDefaults removeObjectForKey:DeskMDRecentDocumentsTestMetadataKey];
+  [self updateOpenRecentMenu];
+
+  NSFileManager *fileManager = NSFileManager.defaultManager;
+  NSURL *tempDirectory = [NSURL fileURLWithPath:[NSTemporaryDirectory() stringByAppendingPathComponent:[[NSUUID UUID] UUIDString]] isDirectory:YES];
+  NSError *error = nil;
+  if (![fileManager createDirectoryAtURL:tempDirectory withIntermediateDirectories:YES attributes:nil error:&error]) {
+    [self finishRecentDocumentsTest:fail(error.localizedDescription ?: @"temp-directory") tempDirectory:tempDirectory];
+    return;
+  }
+
+  NSMutableArray<NSURL *> *urls = [NSMutableArray array];
+  for (NSUInteger index = 0; index < 6; index++) {
+    NSURL *url = [tempDirectory URLByAppendingPathComponent:[NSString stringWithFormat:@"recent-%lu.md", (unsigned long)index]];
+    NSString *content = [NSString stringWithFormat:@"# Recent %lu\n\nBody", (unsigned long)index];
+    if (![content writeToURL:url atomically:YES encoding:NSUTF8StringEncoding error:&error]) {
+      [self finishRecentDocumentsTest:fail(error.localizedDescription ?: @"write-file") tempDirectory:tempDirectory];
+      return;
+    }
+    [urls addObject:url];
+    [self openDocumentAtURL:url removeIfMissing:NO];
+  }
+
+  NSArray<NSString *> *paths = [self recentDocumentPaths];
+  if (paths.count != DeskMDMaximumRecentDocuments) {
+    [self finishRecentDocumentsTest:fail([NSString stringWithFormat:@"count:%lu", (unsigned long)paths.count]) tempDirectory:tempDirectory];
+    return;
+  }
+
+  if (![paths.firstObject isEqualToString:urls[5].path.stringByStandardizingPath]) {
+    [self finishRecentDocumentsTest:fail(@"latest-order") tempDirectory:tempDirectory];
+    return;
+  }
+
+  if ([paths containsObject:urls[0].path.stringByStandardizingPath]) {
+    [self finishRecentDocumentsTest:fail(@"maximum-trim") tempDirectory:tempDirectory];
+    return;
+  }
+
+  [self addRecentDocumentURL:urls[3]];
+  paths = [self recentDocumentPaths];
+  if (paths.count != DeskMDMaximumRecentDocuments || ![paths.firstObject isEqualToString:urls[3].path.stringByStandardizingPath]) {
+    [self finishRecentDocumentsTest:fail(@"dedupe-order") tempDirectory:tempDirectory];
+    return;
+  }
+
+  NSUInteger expectedMenuItems = DeskMDMaximumRecentDocuments + 2;
+  if (self.openRecentMenu.numberOfItems != expectedMenuItems) {
+    [self finishRecentDocumentsTest:fail([NSString stringWithFormat:@"menu-items:%ld", (long)self.openRecentMenu.numberOfItems]) tempDirectory:tempDirectory];
+    return;
+  }
+
+  NSURL *missingURL = [tempDirectory URLByAppendingPathComponent:@"missing.md"];
+  [self addRecentDocumentURL:missingURL];
+  [self openDocumentAtURL:missingURL removeIfMissing:YES];
+  paths = [self recentDocumentPaths];
+  if ([paths containsObject:missingURL.path.stringByStandardizingPath]) {
+    [self finishRecentDocumentsTest:fail(@"missing-not-removed") tempDirectory:tempDirectory];
+    return;
+  }
+
+  NSDictionary *metadata = @{
+    @"tempDirectory": tempDirectory.path ?: @"",
+    @"expectedPaths": paths
+  };
+  [NSUserDefaults.standardUserDefaults setObject:metadata forKey:DeskMDRecentDocumentsTestMetadataKey];
+  [NSUserDefaults.standardUserDefaults synchronize];
+
+  printf("Recent documents test seed result: passed:%s\n", tempDirectory.path.UTF8String);
+  fflush(stdout);
+  dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.2 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+    [NSApp terminate:nil];
+  });
+}
+
+- (void)verifyRecentDocumentsRestoreTest {
+  NSString *(^fail)(NSString *) = ^NSString *(NSString *message) {
+    return [@"failed:" stringByAppendingString:message];
+  };
+
+  NSDictionary *metadata = [NSUserDefaults.standardUserDefaults dictionaryForKey:DeskMDRecentDocumentsTestMetadataKey];
+  NSArray<NSString *> *expectedPaths = [metadata[@"expectedPaths"] isKindOfClass:NSArray.class] ? metadata[@"expectedPaths"] : nil;
+  NSString *tempDirectoryPath = [metadata[@"tempDirectory"] isKindOfClass:NSString.class] ? metadata[@"tempDirectory"] : nil;
+  NSURL *tempDirectory = tempDirectoryPath.length ? [NSURL fileURLWithPath:tempDirectoryPath isDirectory:YES] : nil;
+
+  if (!expectedPaths.count || !tempDirectory) {
+    [self finishRecentDocumentsTest:fail(@"missing-metadata") tempDirectory:tempDirectory];
+    return;
+  }
+
+  NSArray<NSString *> *paths = [self recentDocumentPaths];
+  if (![paths isEqualToArray:expectedPaths]) {
+    [self finishRecentDocumentsTest:fail([NSString stringWithFormat:@"restore-paths:%@", paths]) tempDirectory:tempDirectory];
+    return;
+  }
+
+  NSUInteger expectedMenuItems = expectedPaths.count + 2;
+  if (self.openRecentMenu.numberOfItems != expectedMenuItems) {
+    [self finishRecentDocumentsTest:fail([NSString stringWithFormat:@"restore-menu-items:%ld", (long)self.openRecentMenu.numberOfItems]) tempDirectory:tempDirectory];
+    return;
+  }
+
+  NSMenuItem *firstItem = self.openRecentMenu.itemArray.firstObject;
+  NSString *expectedTitle = [NSURL fileURLWithPath:expectedPaths.firstObject].lastPathComponent;
+  if (![firstItem.title isEqualToString:expectedTitle]) {
+    [self finishRecentDocumentsTest:fail([NSString stringWithFormat:@"restore-menu-title:%@", firstItem.title ?: @""]) tempDirectory:tempDirectory];
+    return;
+  }
+
+  [self clearRecentDocuments:nil];
+  if ([self recentDocumentPaths].count != 0 || self.openRecentMenu.numberOfItems != 1) {
+    [self finishRecentDocumentsTest:fail(@"clear-menu") tempDirectory:tempDirectory];
+    return;
+  }
+
+  [self finishRecentDocumentsTest:@"passed" tempDirectory:tempDirectory];
+}
+
 - (void)finishRecentDocumentsTest:(NSString *)result tempDirectory:(NSURL *)tempDirectory {
   [NSUserDefaults.standardUserDefaults removeObjectForKey:[self recentDocumentsKey]];
+  [NSUserDefaults.standardUserDefaults removeObjectForKey:DeskMDRecentDocumentsTestMetadataKey];
   [self updateOpenRecentMenu];
   if (tempDirectory) {
     [NSFileManager.defaultManager removeItemAtURL:tempDirectory error:nil];

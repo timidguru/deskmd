@@ -223,6 +223,8 @@ app.delegate = delegate;
 - `clickSaveMarkdown()`: `Save` DOM 버튼 클릭.
 - `clickSaveAs()`: `Save As` DOM 버튼 클릭.
 - `completeSave(filename)`: 네이티브 저장 완료 경로를 호출하고 현재 문서명, 저장된 파일명, 상태를 반환.
+- `selectAllPreviewText()`: 미리보기 전체를 실제 선택 상태로 만든 뒤 선택 문자열을 반환.
+- `triggerPreviewCopyShortcut()`: 선택된 미리보기 텍스트에 대해 테스트용 `Cmd+C` 경로를 실행하고 결과를 반환.
 - `copyPreviewTextForTest()`: 미리보기 텍스트를 네이티브 클립보드 브릿지로 복사.
 
 macOS 앱은 `--ux-smoke-test` 실행 인자를 받으면 WebView 로드 후 내부 JS를 평가해 렌더링과 복사 브릿지를 검증하고 종료한다. `scripts/ux-smoke-test.js`는 `dist/DeskMD.app`의 실행 파일을 이 모드로 실행한 뒤 `pbpaste`로 클립보드 결과를 확인한다.
@@ -234,7 +236,8 @@ macOS 앱은 `--recent-documents-test` 실행 인자를 받으면 임시 Markdow
 현재 UX smoke test 검증 범위:
 
 - 테스트 마크다운 주입 후 미리보기 렌더링 확인.
-- 미리보기 텍스트 복사 브릿지 확인.
+- 미리보기 선택 텍스트의 실제 `Cmd+C` 복사 경로 확인.
+- 선택한 미리보기 텍스트의 공백과 줄바꿈이 macOS 클립보드까지 그대로 보존되는지 확인.
 - `새 문서` 버튼의 confirm 경로 확인.
 - `새 문서` 액션 호출 및 상태 확인.
 - `.md`, `.markdown`, `.txt`, 무확장자 문서에 대한 `Save` 액션 호출 및 저장 payload 확인.
@@ -257,6 +260,7 @@ macOS 앱은 `--recent-documents-test` 실행 인자를 받으면 임시 Markdow
 - 중복 항목은 반복 추가하지 않고 맨 위로 이동하는지 확인.
 - 네이티브 `Open Recent` 메뉴가 저장된 경로 기준으로 재구성되는지 확인.
 - 존재하지 않는 파일을 열려고 하면 최근 문서 목록에서 제거되는지 확인.
+- 앱 재실행 후 `NSUserDefaults`에 저장된 최근 문서 목록이 다시 로드되는지 확인.
 - `Clear Menu`가 저장된 목록을 비우는지 확인.
 
 저장/열기 액션은 테스트 중 macOS 패널을 실제로 열지 않고 mock action log에 기록한다. 이는 모달 패널 때문에 자동 테스트가 멈추지 않게 하기 위한 테스트 전용 동작이며, 일반 실행 모드에는 적용되지 않는다.

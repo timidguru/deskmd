@@ -86,7 +86,7 @@ npm run test:topbar
 npm run test:recent
 ```
 
-UX smoke test는 `dist/DeskMD.app/Contents/MacOS/DeskMD`를 `--ux-smoke-test` 인자로 실행합니다. 렌더링, 미리보기 복사, 주요 버튼 동작을 검증한 뒤 macOS 클립보드를 `pbpaste`로 확인합니다. topbar test는 빌드된 앱을 데스크톱 폭과 좁은 창 폭에서 실행해 툴바 레이아웃을 보호하고, 다크 외관 강제 실행을 한 번 더 수행해 다크 토큰과 기본 텍스트 대비를 확인합니다. recent documents test는 최근 파일 순서, 중복 제거, 최대 개수, 누락 파일 제거, 메뉴 비우기를 검증합니다.
+UX smoke test는 `dist/DeskMD.app/Contents/MacOS/DeskMD`를 `--ux-smoke-test` 인자로 실행합니다. 렌더링, 미리보기 선택 텍스트의 실제 `Cmd+C` 복사, 공백과 줄바꿈 보존, 주요 버튼 동작을 검증한 뒤 macOS 클립보드를 `pbpaste`로 확인합니다. topbar test는 빌드된 앱을 데스크톱 폭과 좁은 창 폭에서 실행해 툴바 레이아웃을 보호하고, 다크 외관 강제 실행을 한 번 더 수행해 다크 토큰과 기본 텍스트 대비를 확인합니다. recent documents test는 최근 파일 순서, 중복 제거, 최대 개수, 누락 파일 제거, 앱 재실행 후 목록 복원, 메뉴 비우기를 검증합니다.
 
 ## 오프라인 렌더링
 

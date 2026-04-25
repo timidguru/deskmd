@@ -334,6 +334,19 @@ function createNewDocument() {
   return true;
 }
 
+function selectPreviewContents() {
+  const selection = window.getSelection();
+  if (!selection || !preview.firstChild) {
+    return "";
+  }
+
+  const range = document.createRange();
+  range.selectNodeContents(preview);
+  selection.removeAllRanges();
+  selection.addRange(range);
+  return selection.toString();
+}
+
 window.deskMdTest = {
   enableActionMocks() {
     testActionMocks = true;
@@ -435,8 +448,28 @@ window.deskMdTest = {
       status: status.textContent
     };
   },
+  getSelectedText() {
+    return window.getSelection()?.toString() || "";
+  },
+  selectAllPreviewText() {
+    return selectPreviewContents();
+  },
+  triggerPreviewCopyShortcut() {
+    preview.focus();
+    const event = new KeyboardEvent("keydown", {
+      key: "c",
+      metaKey: true,
+      bubbles: true,
+      cancelable: true
+    });
+    window.dispatchEvent(event);
+    return {
+      defaultPrevented: event.defaultPrevented,
+      selectedText: window.getSelection()?.toString() || ""
+    };
+  },
   copyPreviewTextForTest() {
-    const text = preview.innerText.trim();
+    const text = selectPreviewContents();
     const nativeCopy = window.webkit?.messageHandlers?.copyText;
     if (text && nativeCopy) {
       nativeCopy.postMessage({ text });

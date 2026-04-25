@@ -86,7 +86,7 @@ npm run test:topbar
 npm run test:recent
 ```
 
-The UX smoke test launches `dist/DeskMD.app/Contents/MacOS/DeskMD` with `--ux-smoke-test`, verifies rendering, preview copy, and core button actions, then checks the macOS clipboard with `pbpaste`. The topbar test runs the built app at desktop and narrow window widths to guard the toolbar layout, then repeats the pass with forced dark appearance to verify dark tokens and basic text contrast. The recent documents test verifies recent file ordering, deduplication, maximum size, missing-file removal, and clearing.
+The UX smoke test launches `dist/DeskMD.app/Contents/MacOS/DeskMD` with `--ux-smoke-test`, verifies rendering, the real preview selected-text `Cmd+C` path, whitespace and line-break preservation, and core button actions, then checks the macOS clipboard with `pbpaste`. The topbar test runs the built app at desktop and narrow window widths to guard the toolbar layout, then repeats the pass with forced dark appearance to verify dark tokens and basic text contrast. The recent documents test verifies recent file ordering, deduplication, maximum size, missing-file removal, restore-after-relaunch behavior, and clearing.
 
 ## Offline Rendering
 
