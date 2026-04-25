@@ -215,12 +215,14 @@ app.delegate = delegate;
 - `setMarkdown(markdown, filename)`: 테스트 문서 주입.
 - `getPreviewText()`: 미리보기 plain text 조회.
 - `getStatus()`: 상태 텍스트 조회.
+- `getStoredFileName()`: `localStorage`에 저장된 파일명 조회.
 - `getUpdateStatus()`: 렌더링 라이브러리 업데이트 확인 메시지 조회.
 - `getTopbarLayoutSnapshot()`: 레이아웃 회귀 테스트를 위한 viewport와 상단 툴바 geometry 조회.
 - `clickNewDocument()`: `새 문서` DOM 버튼 클릭.
 - `clickOpenFile()`: `열기` DOM 버튼 클릭.
 - `clickSaveMarkdown()`: `Save` DOM 버튼 클릭.
 - `clickSaveAs()`: `Save As` DOM 버튼 클릭.
+- `completeSave(filename)`: 네이티브 저장 완료 경로를 호출하고 현재 문서명, 저장된 파일명, 상태를 반환.
 - `copyPreviewTextForTest()`: 미리보기 텍스트를 네이티브 클립보드 브릿지로 복사.
 
 macOS 앱은 `--ux-smoke-test` 실행 인자를 받으면 WebView 로드 후 내부 JS를 평가해 렌더링과 복사 브릿지를 검증하고 종료한다. `scripts/ux-smoke-test.js`는 `dist/DeskMD.app`의 실행 파일을 이 모드로 실행한 뒤 `pbpaste`로 클립보드 결과를 확인한다.
@@ -235,8 +237,9 @@ macOS 앱은 `--recent-documents-test` 실행 인자를 받으면 임시 Markdow
 - 미리보기 텍스트 복사 브릿지 확인.
 - `새 문서` 버튼의 confirm 경로 확인.
 - `새 문서` 액션 호출 및 상태 확인.
-- `Save` 액션 호출 및 저장 payload 확인.
-- `Save As` 액션 호출 및 저장 payload 확인.
+- `.md`, `.markdown`, `.txt`, 무확장자 문서에 대한 `Save` 액션 호출 및 저장 payload 확인.
+- `.md`, `.markdown`, `.txt`, 무확장자 문서에 대한 `Save As` 액션 호출 및 저장 payload 확인.
+- 저장 완료 후 화면 파일명과 `localStorage` 파일명이 함께 갱신되는지 확인.
 - `열기` 액션 호출 확인.
 
 현재 topbar layout test 검증 범위:
@@ -283,7 +286,9 @@ let saveTimer = 0;
 - `setStatus(message)`: 상태 메시지 갱신.
 - `setUpdateStatus(message, tone)`: 문서 상태와 분리된 렌더링 라이브러리 업데이트 확인 메시지 갱신.
 - `autosave()`: debounce 후 `localStorage` 저장.
+- `filenameForSave()`: `.md`, `.markdown`, `.txt` 파일명은 유지하고, 지원 확장자가 없을 때만 `.md`를 붙인다.
 - `downloadFile(content, filename, type, mode)`: 앱에서는 native save bridge로 저장 요청, 브라우저에서는 Blob 다운로드 실행.
+- `window.deskMdSaveCompleted(filename)`: 네이티브 저장 완료 직후 화면 파일명과 `localStorage`에 저장된 파일명을 함께 갱신한다.
 - `window.deskMdOpenDocument(filename, content)`: 네이티브 메뉴 열기 요청을 받아 에디터, 미리보기, 메타데이터, 자동 저장, 상태 텍스트를 갱신.
 - `window.deskMdCreateNewDocument()`: 네이티브 `File > New` 메뉴가 툴바와 같은 새 문서 흐름을 재사용하도록 연결.
 
