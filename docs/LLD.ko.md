@@ -40,6 +40,7 @@ DeskMD는 두 레이어로 구성된다.
 │   └── Info.plist
 ├── scripts
 │   ├── build-macos-app.sh
+│   ├── notarize-macos-app.sh
 │   ├── generate-app-icon.js
 │   ├── recent-documents-test.js
 │   ├── topbar-visual-test.js
@@ -217,24 +218,28 @@ app.delegate = delegate;
 - `getStatus()`: 상태 텍스트 조회.
 - `getStoredFileName()`: `localStorage`에 저장된 파일명 조회.
 - `getUpdateStatus()`: 렌더링 라이브러리 업데이트 확인 메시지 조회.
+- `setUpdateStatusForTest(message, tone)`: 다크 외관 테스트용 업데이트 상태 메시지를 주입하고 표시 상태를 반환.
 - `getTopbarLayoutSnapshot()`: 레이아웃 회귀 테스트를 위한 viewport와 상단 툴바 geometry 조회.
 - `clickNewDocument()`: `새 문서` DOM 버튼 클릭.
 - `clickOpenFile()`: `열기` DOM 버튼 클릭.
 - `clickSaveMarkdown()`: `Save` DOM 버튼 클릭.
 - `clickSaveAs()`: `Save As` DOM 버튼 클릭.
 - `completeSave(filename)`: 네이티브 저장 완료 경로를 호출하고 현재 문서명, 저장된 파일명, 상태를 반환.
+- `selectAllPreviewText()`: 미리보기 전체를 실제 선택 상태로 만든 뒤 선택 문자열을 반환.
+- `triggerPreviewCopyShortcut()`: 선택된 미리보기 텍스트에 대해 테스트용 `Cmd+C` 경로를 실행하고 결과를 반환.
 - `copyPreviewTextForTest()`: 미리보기 텍스트를 네이티브 클립보드 브릿지로 복사.
 
 macOS 앱은 `--ux-smoke-test` 실행 인자를 받으면 WebView 로드 후 내부 JS를 평가해 렌더링과 복사 브릿지를 검증하고 종료한다. `scripts/ux-smoke-test.js`는 `dist/DeskMD.app`의 실행 파일을 이 모드로 실행한 뒤 `pbpaste`로 클립보드 결과를 확인한다.
 
-macOS 앱은 `--topbar-visual-test` 실행 인자를 받으면 앱 창을 데스크톱 폭과 좁은 폭으로 조정하고, 빌드된 WebView 안에서 상단 툴바 geometry를 평가한다. 상단 툴바, 작업 영역, 액션 버튼이 viewport 안에 보이고 서로 겹치지 않는지 확인한 뒤 종료한다. `scripts/topbar-visual-test.js`는 `dist/DeskMD.app`에 이 레이아웃 가드를 실행하고, `--force-dark-appearance`를 붙인 다크 외관 패스를 한 번 더 수행해 다크 토큰과 기본 텍스트 대비를 확인한다.
+macOS 앱은 `--topbar-visual-test` 실행 인자를 받으면 앱 창을 데스크톱 폭과 좁은 폭으로 조정하고, 빌드된 WebView 안에서 상단 툴바 geometry를 평가한다. 상단 툴바, 작업 영역, 액션 버튼이 viewport 안에 보이고 서로 겹치지 않는지 확인한 뒤 종료한다. `scripts/topbar-visual-test.js`는 `dist/DeskMD.app`에 이 레이아웃 가드를 실행하고, `--force-dark-appearance`를 붙인 다크 외관 패스를 한 번 더 수행해 다크 토큰, 기본 텍스트 대비, 버전 배지와 업데이트 상태 같은 보조 텍스트 대비를 확인한다.
 
 macOS 앱은 `--recent-documents-test` 실행 인자를 받으면 임시 Markdown 파일을 만들고 최근 문서 정렬, 메뉴 재구성, 누락 파일 제거, 메뉴 비우기를 검증한 뒤 종료한다. `scripts/recent-documents-test.js`는 `dist/DeskMD.app`에 이 가드를 실행한다.
 
 현재 UX smoke test 검증 범위:
 
 - 테스트 마크다운 주입 후 미리보기 렌더링 확인.
-- 미리보기 텍스트 복사 브릿지 확인.
+- 미리보기 선택 텍스트의 실제 `Cmd+C` 복사 경로 확인.
+- 선택한 미리보기 텍스트의 공백과 줄바꿈이 macOS 클립보드까지 그대로 보존되는지 확인.
 - `새 문서` 버튼의 confirm 경로 확인.
 - `새 문서` 액션 호출 및 상태 확인.
 - `.md`, `.markdown`, `.txt`, 무확장자 문서에 대한 `Save` 액션 호출 및 저장 payload 확인.
@@ -249,6 +254,7 @@ macOS 앱은 `--recent-documents-test` 실행 인자를 받으면 임시 Markdow
 - 상단 툴바, 문서 영역, 액션 영역, 작업 영역, `New`/`Open`/`Save`/`Save As` 버튼이 viewport 안에 보이는지 확인.
 - 작업 영역이 상단 툴바와 겹치지 않는지 확인.
 - 다크 외관 강제 실행 시 예상 CSS 토큰이 적용되고 핵심 텍스트 대비가 4.5:1 이상인지 확인.
+- 다크 외관에서 버전 배지, 업데이트 상태, 문서 상태 같은 보조 텍스트 대비가 4.5:1 이상인지 확인.
 
 현재 recent documents test 검증 범위:
 
@@ -257,6 +263,7 @@ macOS 앱은 `--recent-documents-test` 실행 인자를 받으면 임시 Markdow
 - 중복 항목은 반복 추가하지 않고 맨 위로 이동하는지 확인.
 - 네이티브 `Open Recent` 메뉴가 저장된 경로 기준으로 재구성되는지 확인.
 - 존재하지 않는 파일을 열려고 하면 최근 문서 목록에서 제거되는지 확인.
+- 앱 재실행 후 `NSUserDefaults`에 저장된 최근 문서 목록이 다시 로드되는지 확인.
 - `Clear Menu`가 저장된 목록을 비우는지 확인.
 
 저장/열기 액션은 테스트 중 macOS 패널을 실제로 열지 않고 mock action log에 기록한다. 이는 모달 패널 때문에 자동 테스트가 멈추지 않게 하기 위한 테스트 전용 동작이며, 일반 실행 모드에는 적용되지 않는다.
@@ -427,6 +434,22 @@ dist/DeskMD.app
 8. 실행 권한 부여.
 9. 가능한 경우 ad-hoc codesign 수행.
 10. 빌드용 `ModuleCache` 제거.
+
+파일: `scripts/notarize-macos-app.sh`
+
+공증 배포 단계:
+
+1. `DEVELOPER_ID_APPLICATION`을 사용해 `build-macos-app.sh`를 hardened runtime/timestamp 서명 모드로 실행한다.
+2. `dist/DeskMD.app.zip`을 생성한다.
+3. `APPLE_NOTARY_PROFILE` 또는 `APPLE_ID`/`APPLE_TEAM_ID`/`APPLE_APP_SPECIFIC_PASSWORD`로 `xcrun notarytool submit --wait`를 실행한다.
+4. 성공하면 `xcrun stapler staple`과 `xcrun stapler validate`를 수행한다.
+
+release 스크립트 환경 변수:
+
+- 필수: `DEVELOPER_ID_APPLICATION`
+- 권장 인증: `APPLE_NOTARY_PROFILE`
+- 대안 인증: `APPLE_ID`, `APPLE_TEAM_ID`, `APPLE_APP_SPECIFIC_PASSWORD`
+- 선택: `DESKMD_NOTARY_PRIMARY_BUNDLE_ID`, `DESKMD_CODESIGN_ENTITLEMENTS`
 
 ## 10. 실행
 
