@@ -225,7 +225,9 @@ Main functions:
 - `setStatus(message)`: Updates status text.
 - `setUpdateStatus(message, tone)`: Updates renderer library update check text separately from document status.
 - `autosave()`: Debounces and writes to `localStorage`.
+- `filenameForSave()`: Preserves `.md`, `.markdown`, and `.txt` names, and appends `.md` only when the document has no supported extension.
 - `downloadFile(content, filename, type, mode)`: Requests native save in the app, or uses Blob download in a browser.
+- `window.deskMdSaveCompleted(filename)`: Updates the visible filename and persists the restored filename to `localStorage` immediately after native save completion.
 - `window.deskMdOpenDocument(filename, content)`: Receives a native menu open request and updates the editor, preview, metadata, autosave, and status text.
 - `window.deskMdCreateNewDocument()`: Lets the native `File > New` menu reuse the same new-document flow as the toolbar.
 
@@ -244,12 +246,14 @@ Main methods:
 - `setMarkdown(markdown, filename)`: Injects a test document.
 - `getPreviewText()`: Returns preview plain text.
 - `getStatus()`: Returns status text.
+- `getStoredFileName()`: Returns the persisted filename from `localStorage`.
 - `getUpdateStatus()`: Returns renderer library update check text.
 - `getTopbarLayoutSnapshot()`: Returns viewport and top toolbar geometry for layout regression tests.
 - `clickNewDocument()`: Clicks the `New Document` DOM button.
 - `clickOpenFile()`: Clicks the `Open` DOM button.
 - `clickSaveMarkdown()`: Clicks the `Save` DOM button.
 - `clickSaveAs()`: Clicks the `Save As` DOM button.
+- `completeSave(filename)`: Calls the native save-complete path and returns the current document name, stored filename, and status.
 - `copyPreviewTextForTest()`: Copies preview text through the native clipboard bridge.
 
 When the macOS app receives the `--ux-smoke-test` argument, it evaluates internal JavaScript after the WebView finishes loading, verifies rendering and clipboard bridging, then exits. `scripts/ux-smoke-test.js` runs the executable in `dist/DeskMD.app` with this mode and verifies the clipboard result through `pbpaste`.
@@ -264,8 +268,9 @@ Current UX smoke test coverage:
 - Verify preview text copy through the native bridge.
 - Verify the `New Document` confirm path.
 - Verify the `New Document` action and status update.
-- Verify `Save` action and save payload.
-- Verify `Save As` action and save payload.
+- Verify `Save` action and save payload for `.md`, `.markdown`, `.txt`, and extensionless documents.
+- Verify `Save As` action and save payload for `.md`, `.markdown`, `.txt`, and extensionless documents.
+- Verify save completion updates both the visible filename and the persisted `localStorage` filename.
 - Verify `Open` action.
 
 Current topbar layout test coverage:
